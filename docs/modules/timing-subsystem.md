@@ -7,6 +7,7 @@ Boundary for the imported timing endpoint path:
 - endpoint setup and reset behavior
 - timestamp propagation
 - readiness and lock status visibility
+- selected clock-source qualification
 
 ## Imported sources currently involved
 
@@ -20,3 +21,12 @@ Boundary for the imported timing endpoint path:
 
 Keep the timing endpoint behavior intact while creating a typed place for
 future readiness and status contracts.
+
+## Current readiness contract
+
+- `timing_ready` requires:
+  - reset deasserted
+  - both MMCM locks
+- in endpoint-clock mode, it additionally requires:
+  - endpoint ready
+  - valid timestamps

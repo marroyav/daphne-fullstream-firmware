@@ -1,13 +1,20 @@
 # Formal Verification
 
-This repository does not yet have the broader boundary-oriented formal layer
-present in `daphne-firmware`, but it now has an initial stream-specific proof
-target:
+This repository now has the first boundary-oriented formal layer around the
+additive modular scaffolding, plus the earlier stream-specific selector proof.
+
+Boundary jobs:
+
+- `formal/sby/timing_subsystem_boundary_contract.sby`
+- `formal/sby/frontend_boundary_gate.sby`
+- `formal/sby/stream_pipeline_boundary_gate.sby`
+
+Leaf datapath job:
 
 - `formal/sby/stream_mux_select_decode.sby`
 
-That proof checks the decode table for the per-lane stream selector extracted
-from `stream_input_mux.vhd`.
+The imported fullstream RTL remains the active implementation. These proofs are
+focused on the additive wrappers and one extracted leaf selector.
 
 ## Running
 

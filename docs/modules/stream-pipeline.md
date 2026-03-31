@@ -8,6 +8,7 @@ Variant-local fullstream datapath:
 - stream formatting
 - stream lane handoff
 - debug capture interaction
+- readiness-gated activation
 
 ## Imported sources currently involved
 
@@ -26,3 +27,10 @@ Variant-local fullstream datapath:
 Keep the existing stream implementation intact while marking the place where a
 future stream datapath wrapper can own the boundary between capture and
 Hermes/transport handoff.
+
+## Current readiness contract
+
+- `stream_enable` must remain low until:
+  - analog configuration is ready
+  - timing is ready
+  - frontend alignment is valid

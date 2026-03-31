@@ -58,10 +58,12 @@ The current top-level streaming flow is:
 2. Continue renaming only the public/build surface.
 3. Document the shared subsystem boundaries in this repository using the same
    language as `daphne-firmware`.
-4. Isolate the stream datapath behind a variant-local boundary.
-5. Only then start converging common timing / analog / frontend / Hermes
+4. Add typed readiness contracts and boundary proofs for timing, frontend, and
+   stream gating.
+5. Isolate the stream datapath behind a variant-local boundary.
+6. Only then start converging common timing / analog / frontend / Hermes
    wrappers with the selftrigger repository.
-6. Delay deep internal RTL renames until the build path is re-qualified.
+7. Delay deep internal RTL renames until the build path is re-qualified.
 
 ## Next Concrete Steps
 

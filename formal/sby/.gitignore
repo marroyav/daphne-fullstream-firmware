@@ -1,1 +1,4 @@
 stream_mux_select_decode/
+timing_subsystem_boundary_contract/
+frontend_boundary_gate/
+stream_pipeline_boundary_gate/

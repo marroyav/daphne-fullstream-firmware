@@ -1,0 +1,16 @@
+[options]
+mode prove
+depth 2
+
+[engines]
+smtbmc z3
+
+[script]
+plugin -i ghdl
+ghdl --std=08 daphne_fullstream_subsystem_types_pkg.vhd timing_subsystem_boundary.vhd timing_subsystem_boundary_formal.vhd -e timing_subsystem_boundary_formal
+prep -top timing_subsystem_boundary_formal
+
+[files]
+../../ip_repo/daphne3_ip/rtl/isolated/common/daphne_fullstream_subsystem_types_pkg.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/subsystems/timing/timing_subsystem_boundary.vhd
+../vhdl/timing_subsystem_boundary_formal.vhd

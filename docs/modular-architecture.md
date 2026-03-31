@@ -10,8 +10,9 @@ gains a modular scaffold that mirrors the boundary style used in
   streaming implementation.
 - The new `docs/modules/*.md` pages describe the intended subsystem split
   without changing the current behavior.
-- The new `rtl/isolated/...` files are inert wrappers and shared types that can
-  be used later when the stream tree is actually decomposed.
+- The new `rtl/isolated/...` files are additive wrappers and shared types that
+  capture readiness and handoff contracts without changing the imported top
+  level.
 
 ## Initial Boundary Set
 
@@ -29,12 +30,35 @@ gains a modular scaffold that mirrors the boundary style used in
 
 ## Shared Package
 
-- `daphne_fullstream_subsystem_types_pkg` provides a neutral home for future
-  typed boundary contracts and simple readiness/status records.
+- `daphne_fullstream_subsystem_types_pkg` now provides the typed readiness
+  records used by the timing, frontend, and stream boundary wrappers.
+
+## Dependency Model
+
+The current target dependency chain is documented in
+`docs/dependency-transition-plan.md`:
+
+1. `control-plane`
+2. `analog-control`
+3. `timing-subsystem`
+4. `frontend-boundary`
+5. `stream-pipeline`
+6. `spy-buffer-boundary`
+7. `hermes-boundary`
+
+## Formal Layer
+
+Boundary-oriented contracts live under `formal/contracts/`, and the first proof
+jobs now cover:
+
+- timing readiness derivation
+- frontend alignment qualification
+- stream enable gating
+- stream selector decode at the extracted leaf level
 
 ## What This Does Not Do Yet
 
 - It does not rewrite the imported streaming RTL.
-- It does not wire the new boundary stubs into the current top level.
+- It does not wire the new boundary wrappers into the current top level.
 - It does not change register maps, transport behavior, or sample formatting.
 - It does not replace the Vivado batch flow with a FuseSoC build.

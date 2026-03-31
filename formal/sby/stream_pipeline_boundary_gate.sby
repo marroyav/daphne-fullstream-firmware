@@ -1,0 +1,16 @@
+[options]
+mode prove
+depth 2
+
+[engines]
+smtbmc z3
+
+[script]
+plugin -i ghdl
+ghdl --std=08 daphne_fullstream_subsystem_types_pkg.vhd stream_pipeline_boundary.vhd stream_pipeline_boundary_formal.vhd -e stream_pipeline_boundary_formal
+prep -top stream_pipeline_boundary_formal
+
+[files]
+../../ip_repo/daphne3_ip/rtl/isolated/common/daphne_fullstream_subsystem_types_pkg.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/subsystems/stream/stream_pipeline_boundary.vhd
+../vhdl/stream_pipeline_boundary_formal.vhd
