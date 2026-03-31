@@ -8,13 +8,7 @@ provider:
 filesets:
   rtl_boundaries:
     depend:
-      - dune-daq:daphne-fullstream:control-plane:0.1.0
-      - dune-daq:daphne-fullstream:analog-control:0.1.0
-      - dune-daq:daphne-fullstream:timing-subsystem:0.1.0
-      - dune-daq:daphne-fullstream:frontend-boundary:0.1.0
-      - dune-daq:daphne-fullstream:stream-pipeline:0.1.0
-      - dune-daq:daphne-fullstream:hermes-boundary:0.1.0
-      - dune-daq:daphne-fullstream:spy-buffer-boundary:0.1.0
+      - dune-daq:daphne-fullstream:daphne-fullstream-boundary-top:0.1.0
 
 targets:
   default:

@@ -64,9 +64,11 @@ The current top-level streaming flow is:
 5. Isolate the stream datapath behind a variant-local boundary.
 6. Add a transport-facing Hermes lane gate boundary without changing the
    imported transport implementation.
-7. Only then start converging common timing / analog / frontend / Hermes
+7. Add a compositional variant-local boundary top that ties the additive
+   wrappers together without replacing `daphne3.vhd`.
+8. Only then start converging common timing / analog / frontend / Hermes
    wrappers with the selftrigger repository.
-8. Delay deep internal RTL renames until the build path is re-qualified.
+9. Delay deep internal RTL renames until the build path is re-qualified.
 
 ## Next Concrete Steps
 

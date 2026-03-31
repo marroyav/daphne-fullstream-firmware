@@ -4,3 +4,4 @@ frontend_boundary_gate/
 stream_pipeline_boundary_gate/
 spy_buffer_boundary_gate/
 hermes_boundary_contract/
+daphne_fullstream_boundary_top_contract/

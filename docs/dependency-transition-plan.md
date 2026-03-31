@@ -12,6 +12,7 @@ model used in `daphne-firmware`:
 5. `stream-pipeline`
 6. `spy-buffer-boundary`
 7. `hermes-boundary`
+8. `daphne-fullstream-boundary-top`
 
 ## Readiness Conditions
 
@@ -43,3 +44,6 @@ model used in `daphne-firmware`:
 This document defines the target dependency model for the additive wrappers and
 formal harnesses. It does not change the imported streaming RTL behavior on its
 own.
+
+The current compositional expression of that chain now lives in
+`ip_repo/daphne3_ip/rtl/isolated/top/daphne_fullstream_boundary_top.vhd`.

@@ -5,6 +5,7 @@ additive modular scaffolding, plus the earlier stream-specific selector proof.
 
 Boundary jobs:
 
+- `formal/sby/daphne_fullstream_boundary_top_contract.sby`
 - `formal/sby/timing_subsystem_boundary_contract.sby`
 - `formal/sby/frontend_boundary_gate.sby`
 - `formal/sby/stream_pipeline_boundary_gate.sby`

@@ -13,3 +13,4 @@ The formal contract counterparts for these boundaries live in
 - [Stream Pipeline](stream-pipeline.md)
 - [Hermes Boundary](hermes-boundary.md)
 - [Spy Buffer Boundary](spy-buffer-boundary.md)
+- [Fullstream Boundary Top](daphne-fullstream-boundary-top.md)

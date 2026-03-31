@@ -1,0 +1,30 @@
+[options]
+mode prove
+depth 2
+
+[engines]
+smtbmc z3
+
+[script]
+plugin -i ghdl
+ghdl --std=08 \
+  daphne_fullstream_subsystem_types_pkg.vhd \
+  timing_subsystem_boundary.vhd \
+  frontend_boundary.vhd \
+  stream_pipeline_boundary.vhd \
+  spy_buffer_boundary.vhd \
+  hermes_boundary.vhd \
+  daphne_fullstream_boundary_top.vhd \
+  daphne_fullstream_boundary_top_formal.vhd \
+  -e daphne_fullstream_boundary_top_formal
+prep -top daphne_fullstream_boundary_top_formal
+
+[files]
+../../ip_repo/daphne3_ip/rtl/isolated/common/daphne_fullstream_subsystem_types_pkg.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/subsystems/timing/timing_subsystem_boundary.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/subsystems/frontend/frontend_boundary.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/subsystems/stream/stream_pipeline_boundary.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/subsystems/spy/spy_buffer_boundary.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/subsystems/hermes/hermes_boundary.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/top/daphne_fullstream_boundary_top.vhd
+../vhdl/daphne_fullstream_boundary_top_formal.vhd

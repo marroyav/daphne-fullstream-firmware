@@ -27,6 +27,8 @@ gains a modular scaffold that mirrors the boundary style used in
   path and the transport-facing lane gate.
 - `spy-buffer-boundary`: capture readiness and observation boundary for the
   spy buffer path.
+- `daphne-fullstream-boundary-top`: compositional variant-local top built from
+  the additive boundaries.
 
 ## Shared Package
 
@@ -45,12 +47,14 @@ The current target dependency chain is documented in
 5. `stream-pipeline`
 6. `spy-buffer-boundary`
 7. `hermes-boundary`
+8. `daphne-fullstream-boundary-top`
 
 ## Formal Layer
 
 Boundary-oriented contracts live under `formal/contracts/`, and the first proof
 jobs now cover:
 
+- composed fullstream boundary-top readiness propagation
 - timing readiness derivation
 - frontend alignment qualification
 - stream enable gating
