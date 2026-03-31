@@ -95,6 +95,11 @@ or, for the modular scaffold target selection:
 `build_platform.sh` is now a thin convenience wrapper around that FuseSoC
 entry point.
 
+Internally, the Vivado backend is now staged through
+`xilinx/daphne_fullstream_vivado_flow.tcl`, with
+`xilinx/vivado_impl_entry.tcl` acting as the dedicated `impl` entry used by
+the FuseSoC hook.
+
 ## How do I know the building process is working?
 
 Once you clone the repository for the first time, you will see a repository structure like this:
