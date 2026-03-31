@@ -34,3 +34,6 @@ Hermes/transport handoff.
   - analog configuration is ready
   - timing is ready
   - frontend alignment is valid
+- the boundary now owns a real eight-lane handoff contract:
+  - disabled: all lane outputs are forced null
+  - enabled: each `data/valid/last` lane is passed through unchanged

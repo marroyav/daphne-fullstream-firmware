@@ -6,18 +6,22 @@ entity stream_pipeline_boundary_formal is
   port (
     clk       : in std_logic;
     reset     : in std_logic;
-    readiness : in acquisition_readiness_t
+    readiness : in acquisition_readiness_t;
+    lanes_i   : in stream_lane_array_t
   );
 end entity stream_pipeline_boundary_formal;
 
 architecture formal of stream_pipeline_boundary_formal is
   signal stream_enable : std_logic;
+  signal lanes_o       : stream_lane_array_t;
 begin
   dut : entity work.stream_pipeline_boundary
     port map (
       clk             => clk,
       reset           => reset,
       readiness_i     => readiness,
+      lanes_i         => lanes_i,
+      lanes_o         => lanes_o,
       stream_enable_o => stream_enable
     );
 
@@ -45,4 +49,15 @@ begin
   assert (readiness.alignment_ready = '1') or (stream_enable = '0')
     report "stream_enable_o must stay low until alignment is ready"
     severity failure;
+
+  assert (stream_enable = '1') or (lanes_o = STREAM_LANE_ARRAY_NULL)
+    report "lane handoff must be forced to null while the stream boundary is disabled"
+    severity failure;
+
+  lane_passthrough_gen : for i in lanes_o'range generate
+  begin
+    assert (stream_enable = '0') or (lanes_o(i) = lanes_i(i))
+      report "enabled stream boundary must pass each lane through unchanged"
+      severity failure;
+  end generate lane_passthrough_gen;
 end architecture formal;

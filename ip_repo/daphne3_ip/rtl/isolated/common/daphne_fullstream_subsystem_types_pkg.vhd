@@ -61,6 +61,14 @@ package daphne_fullstream_subsystem_types_pkg is
     alignment_ready : std_logic;
   end record;
 
+  type stream_lane_t is record
+    data  : std_logic_vector(63 downto 0);
+    valid : std_logic;
+    last  : std_logic;
+  end record;
+
+  type stream_lane_array_t is array (7 downto 0) of stream_lane_t;
+
   constant FRONTEND_ALIGNMENT_CONTROL_NULL : frontend_alignment_control_t := (
     idelayctrl_reset => '0',
     iserdes_reset    => '0',
@@ -101,6 +109,16 @@ package daphne_fullstream_subsystem_types_pkg is
     config_ready    => '0',
     timing_ready    => '0',
     alignment_ready => '0'
+  );
+
+  constant STREAM_LANE_NULL : stream_lane_t := (
+    data  => (others => '0'),
+    valid => '0',
+    last  => '0'
+  );
+
+  constant STREAM_LANE_ARRAY_NULL : stream_lane_array_t := (
+    others => STREAM_LANE_NULL
   );
 end package daphne_fullstream_subsystem_types_pkg;
 
