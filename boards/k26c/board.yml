@@ -1,0 +1,10 @@
+name: k26c
+supported: true
+fpga_part: xck26-sfvc784-2LV-c
+board_part: xilinx.com:k26c:part0:1.4
+pfm_name: xilinx:k26c:name:0.0
+constraint_file: xilinx/daphne_fullstream_pin_map.xdc
+notes:
+  - Current fullstream Tcl flow is hard-wired to the K26C board profile.
+  - FuseSoC support mirrors the existing non-project Vivado path and keeps the
+    imported streaming implementation intact.

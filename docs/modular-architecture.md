@@ -67,4 +67,7 @@ jobs now cover:
 - It does not rewrite the imported streaming RTL.
 - It does not wire the new boundary wrappers into the current top level.
 - It does not change register maps, transport behavior, or sample formatting.
-- It does not replace the Vivado batch flow with a FuseSoC build.
+- It does not replace the imported streaming top level with the modular
+  boundary top yet.
+- It does not make FuseSoC the only build entry point yet, even though the
+  repo now carries generated/platform FuseSoC manifests and helper scripts.

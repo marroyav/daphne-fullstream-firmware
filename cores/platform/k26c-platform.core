@@ -1,0 +1,28 @@
+CAPI=2:
+
+name: dune-daq:daphne-fullstream:k26c-platform:0.1.0
+description: K26C platform collateral and Tcl build scripts for the fullstream firmware
+provider:
+  name: local
+
+filesets:
+  platform:
+    depend:
+      - dune-daq:daphne-fullstream:daphne-fullstream-ip:0.1.0
+    files:
+      - ../../boards/k26c/board.yml
+      - ../../Memory_Map.md
+      - ../../xilinx/daphne_fullstream_pin_map.xdc
+      - ../../xilinx/daphne_fullstream_bd_gen.tcl
+      - ../../xilinx/daphne_fullstream_dtbo_gen.tcl
+      - ../../xilinx/daphne_fullstream_ip_gen.tcl
+      - ../../xilinx/daphne_fullstream_xgui_gen.tcl
+      - ../../xilinx/scripts/axi_quad_spi_dtbo_patch.sed
+      - ../../xilinx/vivado_batch.tcl
+    file_type: user
+
+targets:
+  default:
+    description: Source-only platform manifest for the current K26C fullstream build flow
+    filesets:
+      - platform

@@ -15,3 +15,9 @@ xilinx/*.log
 xilinx/*.txt
 xilinx/*.mif
 xilinx/*.str
+build/
+dist/
+.venv/
+__pycache__/
+.cache/
+.fusesoc/

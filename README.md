@@ -53,6 +53,33 @@ $ vivado -mode tcl -source vivado_batch.tcl -notrace
 
 After Vivado completes the process, the output reports, bit/bin and XSA files and overlay files can be found in the `src/xilinx/output` directory.
 
+## FuseSoC
+
+This repository now carries a repo-local FuseSoC layer that mirrors the
+modularization work done in `daphne-firmware` without replacing the imported
+streaming RTL flow.
+
+Useful entry points:
+
+```bash
+./scripts/fusesoc/refresh_cores.sh
+./scripts/fusesoc/fusesoc.sh list-cores
+./scripts/fusesoc/preflight_vivado_build.sh
+./scripts/fusesoc/run_vivado_batch.sh
+```
+
+What that layer does today:
+
+- generates a source-manifest core from `xilinx/daphne_fullstream_ip_gen.tcl`
+- exposes K26C platform cores for both the imported build graph and the new
+  modular boundary graph
+- keeps the active Vivado build flow anchored on the existing Tcl scripts
+
+What it does not do yet:
+
+- it does not replace the imported `ip_repo/daphne3_ip/rtl/daphne3.vhd` top
+- it does not yet make FuseSoC the only supported synthesis entry point
+
 ## How do I know the building process is working?
 
 Once you clone the repository for the first time, you will see a repository structure like this:
