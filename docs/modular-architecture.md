@@ -54,6 +54,7 @@ jobs now cover:
 - timing readiness derivation
 - frontend alignment qualification
 - stream enable gating
+- spy capture gating
 - stream selector decode at the extracted leaf level
 
 ## What This Does Not Do Yet

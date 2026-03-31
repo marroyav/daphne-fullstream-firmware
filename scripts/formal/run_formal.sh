@@ -13,6 +13,7 @@ if [ "$#" -eq 0 ]; then
     "$ROOT_DIR/formal/sby/timing_subsystem_boundary_contract.sby" \
     "$ROOT_DIR/formal/sby/frontend_boundary_gate.sby" \
     "$ROOT_DIR/formal/sby/stream_pipeline_boundary_gate.sby" \
+    "$ROOT_DIR/formal/sby/spy_buffer_boundary_gate.sby" \
     "$ROOT_DIR/formal/sby/stream_mux_select_decode.sby"
 fi
 

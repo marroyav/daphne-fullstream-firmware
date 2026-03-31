@@ -11,9 +11,12 @@ Define the observation/capture boundary without changing the imported spy path.
 
 ## Guarantees
 
-- The boundary is the future home for safe capture gating.
+- `spy_enable` is entirely determined by the shared acquisition-readiness
+  contract.
+- The boundary must not declare capture enabled before configuration, timing,
+  and alignment are all valid.
 
 ## Evidence target
 
-- contract documentation now
-- readiness-gate formal after the wrapper carries explicit enables
+- boundary-level formal on the `spy_enable` gate now
+- deeper capture-path proofs later

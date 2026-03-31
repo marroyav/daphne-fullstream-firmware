@@ -7,6 +7,7 @@ Boundary for capture and observation gating:
 - readiness before capture enable
 - debug path isolation
 - future observation-contract cleanup
+- acquisition-readiness gating
 
 ## Imported sources currently involved
 
@@ -21,3 +22,10 @@ Boundary for capture and observation gating:
 
 Keep the current spy-buffer behavior intact while carving out the place where
 readiness and capture semantics can be typed later.
+
+## Current readiness contract
+
+- `spy_enable` must remain low until:
+  - analog configuration is ready
+  - timing is ready
+  - frontend alignment is valid

@@ -1,0 +1,16 @@
+[options]
+mode prove
+depth 2
+
+[engines]
+smtbmc z3
+
+[script]
+plugin -i ghdl
+ghdl --std=08 daphne_fullstream_subsystem_types_pkg.vhd spy_buffer_boundary.vhd spy_buffer_boundary_formal.vhd -e spy_buffer_boundary_formal
+prep -top spy_buffer_boundary_formal
+
+[files]
+../../ip_repo/daphne3_ip/rtl/isolated/common/daphne_fullstream_subsystem_types_pkg.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/subsystems/spy/spy_buffer_boundary.vhd
+../vhdl/spy_buffer_boundary_formal.vhd
