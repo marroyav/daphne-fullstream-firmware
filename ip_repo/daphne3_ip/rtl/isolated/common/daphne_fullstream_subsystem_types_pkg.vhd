@@ -69,6 +69,13 @@ package daphne_fullstream_subsystem_types_pkg is
 
   type stream_lane_array_t is array (7 downto 0) of stream_lane_t;
 
+  type hermes_boundary_status_t is record
+    ready          : std_logic;
+    backpressure   : std_logic;
+    link_up        : std_logic;
+    transport_busy : std_logic;
+  end record;
+
   constant FRONTEND_ALIGNMENT_CONTROL_NULL : frontend_alignment_control_t := (
     idelayctrl_reset => '0',
     iserdes_reset    => '0',
@@ -119,6 +126,13 @@ package daphne_fullstream_subsystem_types_pkg is
 
   constant STREAM_LANE_ARRAY_NULL : stream_lane_array_t := (
     others => STREAM_LANE_NULL
+  );
+
+  constant HERMES_BOUNDARY_STATUS_NULL : hermes_boundary_status_t := (
+    ready          => '0',
+    backpressure   => '0',
+    link_up        => '0',
+    transport_busy => '0'
   );
 end package daphne_fullstream_subsystem_types_pkg;
 

@@ -9,6 +9,7 @@ Boundary jobs:
 - `formal/sby/frontend_boundary_gate.sby`
 - `formal/sby/stream_pipeline_boundary_gate.sby`
 - `formal/sby/spy_buffer_boundary_gate.sby`
+- `formal/sby/hermes_boundary_contract.sby`
 
 Leaf datapath job:
 

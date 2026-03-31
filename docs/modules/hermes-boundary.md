@@ -4,7 +4,7 @@
 
 Boundary around the unchanged Hermes/network transport path:
 
-- transport handoff
+- transport-facing lane handoff
 - packet emission readiness
 - preservation of the existing network-facing contract
 
@@ -21,3 +21,12 @@ Boundary around the unchanged Hermes/network transport path:
 
 Keep the transport implementation untouched while creating a neutral wrapper
 name for future stream and control convergence work.
+
+## Current readiness contract
+
+- `ready` must remain low until:
+  - analog configuration is ready
+  - timing is ready
+  - frontend alignment is valid
+- disabled handoff forces a null lane array
+- enabled handoff passes each lane through unchanged

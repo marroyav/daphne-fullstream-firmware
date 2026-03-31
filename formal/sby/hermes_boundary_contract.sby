@@ -1,0 +1,16 @@
+[options]
+mode prove
+depth 2
+
+[engines]
+smtbmc z3
+
+[script]
+plugin -i ghdl
+ghdl --std=08 daphne_fullstream_subsystem_types_pkg.vhd hermes_boundary.vhd hermes_boundary_formal.vhd -e hermes_boundary_formal
+prep -top hermes_boundary_formal
+
+[files]
+../../ip_repo/daphne3_ip/rtl/isolated/common/daphne_fullstream_subsystem_types_pkg.vhd
+../../ip_repo/daphne3_ip/rtl/isolated/subsystems/hermes/hermes_boundary.vhd
+../vhdl/hermes_boundary_formal.vhd

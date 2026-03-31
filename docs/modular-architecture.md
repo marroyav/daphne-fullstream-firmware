@@ -24,7 +24,7 @@ gains a modular scaffold that mirrors the boundary style used in
 - `stream-pipeline`: streaming datapath boundary around the existing
   `stream_*` implementation.
 - `hermes-boundary`: handoff boundary around the unchanged Hermes transport
-  path.
+  path and the transport-facing lane gate.
 - `spy-buffer-boundary`: capture readiness and observation boundary for the
   spy buffer path.
 
@@ -56,6 +56,7 @@ jobs now cover:
 - stream enable gating
 - spy capture gating
 - stream selector decode at the extracted leaf level
+- Hermes transport-facing lane gate
 
 ## What This Does Not Do Yet
 

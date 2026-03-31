@@ -11,10 +11,12 @@ explicit for the fullstream variant.
 
 ## Guarantees
 
-- The boundary documents where fullstream data becomes transport input.
+- The boundary documents where fullstream lane arrays become transport input.
+- The boundary owns the transport-facing readiness gate through a typed
+  `ready` status bit.
 - Board/network identity remains a software/platform concern, not a PL refactor.
 
 ## Evidence target
 
-- contract documentation now
-- boundary formal later if the wrapper gains explicit handshake state
+- boundary-level formal on the `ready` gate and lane handoff now
+- deeper transport/protocol proofs later around the imported Hermes path

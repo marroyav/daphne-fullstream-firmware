@@ -43,6 +43,7 @@ These are specific to the streaming mode and should remain variant-local:
 - `ip_repo/daphne3_ip/rtl/stream/stream4.vhd`
 - `ip_repo/daphne3_ip/rtl/stream/stream8.vhd`
 - top-level stream wiring in `ip_repo/daphne3_ip/rtl/daphne3.vhd`
+- downstream transport-facing lane gate in `ip_repo/daphne3_ip/rtl/isolated/subsystems/hermes/hermes_boundary.vhd`
 
 The current top-level streaming flow is:
 
@@ -61,9 +62,11 @@ The current top-level streaming flow is:
 4. Add typed readiness contracts and boundary proofs for timing, frontend, and
    stream gating.
 5. Isolate the stream datapath behind a variant-local boundary.
-6. Only then start converging common timing / analog / frontend / Hermes
+6. Add a transport-facing Hermes lane gate boundary without changing the
+   imported transport implementation.
+7. Only then start converging common timing / analog / frontend / Hermes
    wrappers with the selftrigger repository.
-7. Delay deep internal RTL renames until the build path is re-qualified.
+8. Delay deep internal RTL renames until the build path is re-qualified.
 
 ## Next Concrete Steps
 

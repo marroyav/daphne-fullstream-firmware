@@ -34,6 +34,9 @@ model used in `daphne-firmware`:
     `alignment_ready` are all true
 - `spy-buffer-boundary`
   - should eventually gate capture under the same readiness contract
+- `hermes-boundary`
+  - owns the downstream transport-facing lane handoff
+  - must not alter Hermes protocol or MAC/IP ownership
 
 ## Current Scope
 
