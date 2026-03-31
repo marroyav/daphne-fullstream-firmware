@@ -289,7 +289,7 @@ set wibTypeExceptionList {
 }
 
 set constraintsFiles_aux [get_files_recursive $constDir "*.xdc"]
-set constraintsFiles [ignore_files $constraintsFiles_aux "DAPHNE_V3_PIN_MAP.xdc"]
+set constraintsFiles [ignore_files $constraintsFiles_aux "daphne_fullstream_pin_map.xdc"]
 set constraintsDAQFiles [get_files_recursive $constDAQDir "*.tcl"]
 
 set tclFiles [get_files_recursive $tclConstDir "*.tcl"]
@@ -582,7 +582,7 @@ set daphne_bus_parameters {
     NUM_WRITE_OUTSTANDING 1
     MAX_BURST_LENGTH 1
     PHASE 0.0
-    CLK_DOMAIN DAPHNE_MEZ_STREAMING_V1_zynq_ultra_ps_e_0_0_pl_clk0
+    CLK_DOMAIN daphne_fullstream_bd_zynq_ultra_ps_e_0_0_pl_clk0
     NUM_READ_THREADS 1
     NUM_WRITE_THREADS 1
     RUSER_BITS_PER_BYTE 0
@@ -828,9 +828,9 @@ foreach plClkInterface $daphne_pl_clk_interfaces {
             # configure the clock domain name properly, which changes from other interfaces
             if {$plClkBusParam eq "CLK_DOMAIN"} {
                 if {[string match "eth_clk_n" $plClkInterface]} {
-                    set_property VALUE DAPHNE_MEZ_STREAMING_V1_GTH0_REFCLK_N $plClk_param
+                    set_property VALUE daphne_fullstream_bd_GTH0_REFCLK_N $plClk_param
                 } elseif {[string match "eth_clk_p" $plClkInterface]} {
-                    set_property VALUE DAPHNE_MEZ_STREAMING_V1_GTH0_REFCLK_P $plClk_param
+                    set_property VALUE daphne_fullstream_bd_GTH0_REFCLK_P $plClk_param
                 } else {
                     set_property VALUE ${plClkBusParamVal}_${plClkInterface} $plClk_param
                 }
@@ -894,7 +894,7 @@ ipx::upgrade_core $daphne
 
 set XGUILoc ../ip_repo/daphne3_ip/xgui/DAPHNE3_v1_0.tcl
 # create XGUI file
-source -notrace daphne3_xgui_gen.tcl
+source -notrace daphne_fullstream_xgui_gen.tcl
 
 # add custom XGUI file
 ipx::add_file -name [file normalize $XGUILoc] -file_group $xpgui_files

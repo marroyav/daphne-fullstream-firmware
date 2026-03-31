@@ -1,4 +1,4 @@
-# create XGUI file generator
+# create XGUI file generator for the fullstream build wrapper
 # describes the proper ipgui commands in order to properly modify parameters from the IP
 # this is not the best solution at the moment,
 # so it hopes for DAPHNE to not have more parameters in the near future!

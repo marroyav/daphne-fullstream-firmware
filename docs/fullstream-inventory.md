@@ -9,14 +9,14 @@ renamed `daphne-firmware` tree.
 - Top RTL: `ip_repo/daphne3_ip/rtl/daphne3.vhd`
 - Top package: `ip_repo/daphne3_ip/rtl/daphne3_package.vhd`
 - Main build script: `xilinx/vivado_batch.tcl`
-- Block design generator: `xilinx/daphne3_bd_gen.tcl`
-- IP packager: `xilinx/daphne3_ip_gen.tcl`
-- DT overlay helper: `xilinx/daphne3_dtbo_gen.tcl`
-- Constraints: `xilinx/DAPHNE_V3_PIN_MAP.xdc`
+- Block design generator: `xilinx/daphne_fullstream_bd_gen.tcl`
+- IP packager: `xilinx/daphne_fullstream_ip_gen.tcl`
+- DT overlay helper: `xilinx/daphne_fullstream_dtbo_gen.tcl`
+- Constraints: `xilinx/daphne_fullstream_pin_map.xdc`
 
 ## Build/Product Names In This Source
 
-The current streaming branch still produces legacy names such as:
+The imported streaming branch originally produced legacy names such as:
 
 - `DAPHNE_MEZ_STREAMING_V1`
 - `DAPHNE_MEZ_STREAMING_V1_wrapper`
@@ -24,6 +24,15 @@ The current streaming branch still produces legacy names such as:
 - `daphne3_str_<sha>.bin`
 - `daphne3_str_<sha>.xsa`
 - `daphne3_str_OL_<sha>/`
+
+The public/build surface on this branch now uses:
+
+- `daphne_fullstream_bd`
+- `daphne_fullstream_bd_wrapper`
+- `daphne_fullstream_<sha>.bit`
+- `daphne_fullstream_<sha>.bin`
+- `daphne_fullstream_<sha>.xsa`
+- `daphne_fullstream_ol_<sha>/`
 
 ## Streaming-Specific RTL
 
@@ -70,7 +79,7 @@ Clearly streaming-specific here:
 - stream datapath in `rtl/stream/`
 - top-level wiring in `rtl/daphne3.vhd`
 - streaming build/product names in `xilinx/vivado_batch.tcl`
-- streaming block-design naming in `xilinx/daphne3_bd_gen.tcl`
+- streaming block-design naming in `xilinx/daphne_fullstream_bd_gen.tcl`
 
 ## Immediate Refactor Direction
 

@@ -67,10 +67,10 @@ Once you clone the repository for the first time, you will see a repository stru
     │   └── ...
     ├── 📂 xilinx/
     │   ├── 📂 scripts/
-    │   ├── 📄 daphne3_bd_gen.tcl
-    │   ├── 📄 daphne3_ip_gen.tcl
-    │   ├── 📄 daphne3_dtbo_gen.tcl
-    │   ├── 📄 DAPHNE_V3_PIN_MAP.xdc
+    │   ├── 📄 daphne_fullstream_bd_gen.tcl
+    │   ├── 📄 daphne_fullstream_ip_gen.tcl
+    │   ├── 📄 daphne_fullstream_dtbo_gen.tcl
+    │   ├── 📄 daphne_fullstream_pin_map.xdc
     │   ├── 📄 vivado_batch.tcl
     │   └── ...
     ├── 📄 .gitignore
@@ -99,10 +99,10 @@ After you run the `src/xilinx/vivado_batch.tcl` script, there will be a few new 
     │   │   ├── 📦 daphne3.xsa
     │   │   └── ...
     │   ├── 📂 scripts/
-    │   ├── 📄 daphne3_bd_gen.tcl
-    │   ├── 📄 daphne3_ip_gen.tcl
-    │   ├── 📄 daphne3_dtbo_gen.tcl
-    │   ├── 📄 DAPHNE_V3_PIN_MAP.xdc
+    │   ├── 📄 daphne_fullstream_bd_gen.tcl
+    │   ├── 📄 daphne_fullstream_ip_gen.tcl
+    │   ├── 📄 daphne_fullstream_dtbo_gen.tcl
+    │   ├── 📄 daphne_fullstream_pin_map.xdc
     │   ├── 📄 vivado_batch.tcl
     │   └── ...
     ├── 📄 .gitignore
@@ -117,7 +117,7 @@ Click on every arrow and a general description of the folder/file will appear.
 
 <details>
 <summary>📂 <code>bd/</code></summary>
-Folder that stores all of the files related to the IP cores used in the block design, as well as their wrappers, constraints, synthesis files, IP cores xci description files, and so on. It is created once you run the 📄 <code>daphne3_bd_gen.tcl</code> script, and this folder also contains the 📄 <code>DAPHNE_MEZ_STREAMING_V1.bd</code> and 📄 <code>DAPHNE_MEZ_STREAMING_V1.bda</code> files, so this is the path that can be used to read the full design. This folder is automatically generated and it is not committed to Github.
+Folder that stores all of the files related to the IP cores used in the block design, as well as their wrappers, constraints, synthesis files, IP cores xci description files, and so on. It is created once you run the 📄 <code>daphne_fullstream_bd_gen.tcl</code> script, and this folder also contains the generated 📄 <code>daphne_fullstream_bd.bd</code> design. This folder is automatically generated and it is not committed to Github.
 </details>
 
 <details>
@@ -132,7 +132,7 @@ This is the folder where you can find everything related to the PL side of DAPHN
 - 📂 <code>constraints/</code>: (Deprecated) Contains the constraints of the design.
 - 📂 <code>rtl/</code>: Contains all of the VHDL/Verilog files that build the design, there are many subfolders that specify to what function/submodule the HDL file belongs. But the top level can be found almost immediately by opening the folder.
 - 📂 <code>sim/</code>: Contains all of the HDL files that allow the user to perform simulations. These includes mainly test bench files.
-- 📂 <code>src/</code>: Contains all of the files related to the Hermes 10G Sender sub IP core. Inside you can also find more tcl files, as well as another 📄 <code>component.xml</code> file related to the Hermes module. 📄 <code>daphne3_ip_gen.tcl</code> imports the IP into the main DAPHNE3 IP by flattening the Hermes module and declaring each VHDL/Verilog files, instead of using the <code>.xci</code> files.
+- 📂 <code>src/</code>: Contains all of the files related to the Hermes 10G Sender sub IP core. Inside you can also find more tcl files, as well as another 📄 <code>component.xml</code> file related to the Hermes module. 📄 <code>daphne_fullstream_ip_gen.tcl</code> imports the IP into the main DAPHNE3 IP by flattening the Hermes module and declaring each VHDL/Verilog files, instead of using the <code>.xci</code> files.
 - 📂 <code>xgui/</code>: Contains the TCL script that allows the user to edit the IP's parameters in the GUI.  
 - 📄 <code>component.xml</code>: Xilinx IP packaging file that contains all of the IP's metadata, automatically generated.
 
@@ -142,11 +142,11 @@ This is the folder where you can find everything related to the PL side of DAPHN
 <summary>📂 <code>xilinx/</code></summary>
 Here are stored all of the tcl files that the project uses in order to generate the outputs (e.g., binaries, hardware description files). As well as the output folder of the design. The main files are:
 
-- 📄 <code>daphne3_ip_gen.tcl</code>: Creates a custom IP for the DAPHNE3 PL Side.  
-- 📄 <code>daphne3_bd_gen.tcl</code>: Creates a Block Design that connects DAPHNE3's PL and PS.  
-- 📄 <code>daphne3_dtbo_gen.tcl</code>: Creates the Device Tree Overlay of the firmware.
-- 📄 <code>daphne3_xgui_gen.tcl</code>: Creates a GUI file for the custom DAPHNE3 PL IP core.  
-- 📄 <code>DAPHNE_V3_PIN_MAP.xdc</code>: Main constraints file.  
+- 📄 <code>daphne_fullstream_ip_gen.tcl</code>: Creates a custom IP for the streaming PL side.
+- 📄 <code>daphne_fullstream_bd_gen.tcl</code>: Creates a Block Design that connects the streaming PL and PS.
+- 📄 <code>daphne_fullstream_dtbo_gen.tcl</code>: Creates the Device Tree Overlay of the firmware.
+- 📄 <code>daphne_fullstream_xgui_gen.tcl</code>: Creates a GUI file for the custom DAPHNE3 PL IP core.
+- 📄 <code>daphne_fullstream_pin_map.xdc</code>: Main constraints file.
 - 📄 <code>vivado_batch.tcl</code>: Main script, generates EVERYTHING.  
 
 You might also find other IP generation files related to more custom IPs here, however, it is strongly recommended to generate all the custom HDL inside the DAPHNE3 PL, to keep the repository clean and easier to maintain. Here you can also find the main constraints file.
@@ -189,11 +189,11 @@ And simulation/testbench files should go into the sim folder.
 
 Any modifications to the constraints should be done in the constraints file inside the `src/xilinx` directory. 
 
-    src/xilinx/DAPHNE_V3_PIN_MAP.xdc
+    src/xilinx/daphne_fullstream_pin_map.xdc
 
 Any other constraints in the repository are currently ignored by the design flow (as they are deprecated).
 
-The `src/xilinx/daphne3_ip_gen.tcl` script will automatically read for all of the files inside the `rtl` directory and add them to the IP, so you don't have to worry about adding them later. If you want to specifically ignore a file, but don't want to delete it from the repository, you should open the `src/xilinx/daphne3_ip_gen.tcl` script and look for the proc `ignore_files`. This procedure receives the name of the file you want to ignore and avoids including it in the IP, an example is the variable/list `vhdlFiles`, a list where the name of the files for the IP is created. Locate it inside the `src/xilinx/daphne3_ip_gen.tcl` script and you will be able to add the files you want to "delete". See the following piece of code:
+The `src/xilinx/daphne_fullstream_ip_gen.tcl` script will automatically read for all of the files inside the `rtl` directory and add them to the IP, so you don't have to worry about adding them later. If you want to specifically ignore a file, but don't want to delete it from the repository, you should open the `src/xilinx/daphne_fullstream_ip_gen.tcl` script and look for the proc `ignore_files`. This procedure receives the name of the file you want to ignore and avoids including it in the IP, an example is the variable/list `vhdlFiles`, a list where the name of the files for the IP is created. Locate it inside the `src/xilinx/daphne_fullstream_ip_gen.tcl` script and you will be able to add the files you want to "delete". See the following piece of code:
 
 ```tcl
 set vhdlFiles_start [get_files_recursive $rtlDir "*.vhd"]   # Add all of the files that match the condition: ends in .vhd
@@ -204,9 +204,9 @@ set vhdlFiles [ignore_files $vhdlFiles_start {"daphne3.vhd" "auto_afe.vhd" "auto
 
 It is strongly recommended to NOT use the Vivado GUI (Project Mode) to build this design; some settings in the TCL script will likely not be applied properly if that design flow is attempted, however, it is possible to monitor how the design was built by checking every step using Vivado's GUI to verify. The flow used by the repository to build the design is as follows (This is what the batch file does):
 
-1. Create the DAPHNE3 PL IP. This is done by running the script `src/xilinx/daphne3_ip_gen.tcl`.
+1. Create the DAPHNE3 PL IP. This is done by running the script `src/xilinx/daphne_fullstream_ip_gen.tcl`.
     
-    This script generates the IP using all of the RTL sources inside the src/ip_repo/daphne3_ip directory. The file generates sub IP cores used by the Hermes 10G Sender module, adds ports (inputs and outputs), generic parameters, associates top level file, includes all opf the submodules, and calls for the `src/xilinx/daphne3_xgui_gen.tcl` script to generate the XGUI file needed to change each parameter of the IP using the Vivado GUI.
+    This script generates the IP using all of the RTL sources inside the src/ip_repo/daphne3_ip directory. The file generates sub IP cores used by the Hermes 10G Sender module, adds ports (inputs and outputs), generic parameters, associates top level file, includes all opf the submodules, and calls for the `src/xilinx/daphne_fullstream_xgui_gen.tcl` script to generate the XGUI file needed to change each parameter of the IP using the Vivado GUI.
 
     You can see if the IP contains the files/sources that you want by:
 
@@ -240,7 +240,7 @@ It is strongly recommended to NOT use the Vivado GUI (Project Mode) to build thi
 
         ```tcl
         $ cd src/xilinx
-        $ vivado -mode tcl -source daphne3_ip_gen.tcl -notrace
+        $ vivado -mode tcl -source daphne_fullstream_ip_gen.tcl -notrace
         $ ipx::edit_ip_in_project ../ip_repo/daphne3_ip/component.xml
         $ start_gui
         ```
@@ -249,7 +249,7 @@ It is strongly recommended to NOT use the Vivado GUI (Project Mode) to build thi
 
         *Folders to delete:* `src/ip_repo/daphne3_ip/edit_ip.cache src/ip_repo/daphne3_ip/edit_ip.gen src/ip_repo/daphne3_ip/edit_ip.hw src/ip_repo/daphne3_ip/edit_ip.ip_user_files src/ip_repo/daphne3_ip/edit_ip.sim src/ip_repo/daphne3_ip/edit_ip.xpr`.
 
-2. Create the DAPHNE3 Block Design. This is done by running the script `src/xilinx/daphne3_bd_gen.tcl`.
+2. Create the DAPHNE3 Block Design. This is done by running the script `src/xilinx/daphne_fullstream_bd_gen.tcl`.
 
     This script generates the Block Design that connects both PS side and PL side, the last one being the DAPHNE3 IP core generated earlier. This script creates cells that include the Zynq UltraScale+ MPSoC, AXI Interconnect module, AXI Quad SPI module, Interrupts and more. It also creates the address segments used by each module, assigns their sizes, and more.
 
@@ -266,12 +266,12 @@ It is strongly recommended to NOT use the Vivado GUI (Project Mode) to build thi
 
         ```tcl
         $ cd src/xilinx
-        $ vivado -mode tcl -source daphne3_ip_gen.tcl -notrace
+        $ vivado -mode tcl -source daphne_fullstream_ip_gen.tcl -notrace
         $ vivado -mode tcl -source axilite_ram_ip_gen.tcl -notrace <---- This one can be skipped if this IP is not in the design
         $ set_property IP_REPO_PATHS ../ip_repo [current_project]
         $ update_ip_catalog 
-        $ read_bd ../bd/DAPHNE_MEZ_STREAMING_V1/DAPHNE_MEZ_STREAMING_V1.bd
-        $ open_bd_design ../bd/DAPHNE_MEZ_STREAMING_V1/DAPHNE_MEZ_STREAMING_V1.bd
+        $ read_bd ../bd/daphne_fullstream_bd/daphne_fullstream_bd.bd
+        $ open_bd_design ../bd/daphne_fullstream_bd/daphne_fullstream_bd.bd
         $ upgrade_ip [get_ips]
         $ start_gui
         ```
@@ -290,7 +290,7 @@ It is strongly recommended to NOT use the Vivado GUI (Project Mode) to build thi
         $ set git_sha [exec git rev-parse --short=7 HEAD]
         $ set min_git_sha [string range $git_sha 0 0]
         $ set bd_git_sha "4'h$min_git_sha"
-        $ source -notrace daphne3_bd_gen.tcl
+        $ source -notrace daphne_fullstream_bd_gen.tcl
         $ start_gui
         ```
 

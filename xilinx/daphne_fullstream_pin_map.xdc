@@ -111,7 +111,7 @@ set_false_path -from [get_clocks {clk_pl_0}] -to [get_clocks {clk125}]
 #set_false_path -from [get_pins daq_out_param_reg_reg[*]/C]
 #set_false_path -from [get_pins core_inst/input_inst/*select_reg_reg*/C]
 
-set_property CLOCK_DEDICATED_ROUTE BACKBONE [get_nets DAPHNE_MEZ_STREAMING_V1_i/DAPHNE3/U0/endpoint_inst/pdts_endpoint_inst/pdts_endpoint_inst/rxcdr/bclk]
+set_property CLOCK_DEDICATED_ROUTE BACKBONE [get_nets daphne_fullstream_bd_i/DAPHNE3/U0/endpoint_inst/pdts_endpoint_inst/pdts_endpoint_inst/rxcdr/bclk]
 
 
 

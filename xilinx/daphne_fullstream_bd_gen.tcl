@@ -1,5 +1,6 @@
-# elaborated TCL script file to create DAPHNE3's block design
-# the script generates the .bd file needed to build DAPHNE3's .bit file, within the In-Memory Project
+# elaborated TCL script file to create the fullstream block design
+# the script generates the .bd file needed to build the fullstream bitstream,
+# within the In-Memory Project
 # <daniel.avila@eia.edu.co - daniel.avila.gomez@cern.ch>
 
 # general setup stuff
@@ -21,9 +22,9 @@ set_property BOARD_PART xilinx.com:k26c:part0:1.4 [current_project]
 set_property TARGET_LANGUAGE VHDL [current_project]
 set_property DEFAULT_LIB work [current_project]
 
-# make sure to add the new DAPHNE3 IP before generating the Block Design
+# make sure to add the DAPHNE3 IP before generating the Block Design
 # this helps to avoid errors or not finding the IP
-source -notrace daphne3_ip_gen.tcl
+source -notrace daphne_fullstream_ip_gen.tcl
 
 # update IP catalog
 set_property IP_REPO_PATHS ../ip_repo [current_project]
@@ -31,7 +32,7 @@ update_ip_catalog
 
 # set design name here
 variable designName 
-set designName DAPHNE_MEZ_STREAMING_V1
+set designName daphne_fullstream_bd
 
 # set variables to control errors
 set errMsg ""
