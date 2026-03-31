@@ -216,17 +216,16 @@ targets:
     description: Synthesizable DAPHNE3 fullstream PL source manifest
     filesets:
       - rtl_vhdl
-      - rtl_verilog
+      - rtl_top
+      - sim_vhdl
       - daq_vhdl_93
       - daq_vhdl_2008
       - daq_verilog
-      - rtl_top
   sim-src:
     <<: *default_target
     description: Source manifest including HDL test benches
     filesets_append:
       - sim_vhdl
-      - sim_verilog
   vivado-src:
     <<: *default_target
     description: Source manifest plus Tcl/XCI collateral expected by Vivado

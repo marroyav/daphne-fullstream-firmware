@@ -64,8 +64,6 @@ Useful entry points:
 ```bash
 ./scripts/fusesoc/refresh_cores.sh
 ./scripts/fusesoc/fusesoc.sh list-cores
-./scripts/fusesoc/preflight_vivado_build.sh
-./scripts/fusesoc/run_vivado_batch.sh
 ./scripts/fusesoc/build_platform.sh
 ```
 
@@ -75,26 +73,27 @@ What that layer does today:
 - exposes K26C platform cores for both the imported build graph and the new
   modular boundary graph
 - keeps the active Vivado build flow anchored on the existing Tcl scripts
+- provides a FuseSoC `impl` target that bridges to the existing Tcl batch flow
 
 What it does not do yet:
 
 - it does not replace the imported `ip_repo/daphne3_ip/rtl/daphne3.vhd` top
 - it does not yet make FuseSoC the only supported synthesis entry point
 
-The highest-level build entry point is now:
+The intended direct FuseSoC entry is:
 
 ```bash
-./scripts/fusesoc/build_platform.sh --platform-core dune-daq:daphne-fullstream:k26c-platform:0.1.0
+./scripts/fusesoc/fusesoc.sh run --setup --build --target impl dune-daq:daphne-fullstream:k26c-platform:0.1.0
 ```
 
 or, for the modular scaffold target selection:
 
 ```bash
-./scripts/fusesoc/build_platform.sh --modular
+./scripts/fusesoc/fusesoc.sh run --setup --build --target impl dune-daq:daphne-fullstream:k26c-modular-platform:0.1.0
 ```
 
-Today both commands still run the same imported Vivado Tcl flow after
-validating the requested platform core through FuseSoC.
+`build_platform.sh` is now a thin convenience wrapper around that FuseSoC
+entry point.
 
 ## How do I know the building process is working?
 

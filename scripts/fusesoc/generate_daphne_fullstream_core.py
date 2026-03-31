@@ -41,9 +41,9 @@ def emit_fileset(
     files: list[str],
     file_type: str,
     depends: list[str] | None = None,
-) -> None:
+) -> bool:
     if not files and not depends:
-        return
+        return False
     lines.append(f"  {name}:")
     if depends:
         lines.append("    depend:")
@@ -54,6 +54,7 @@ def emit_fileset(
         for item in files:
             lines.append(f"      - {item}")
     lines.append(f"    file_type: {file_type}")
+    return True
 
 
 def main() -> None:
@@ -123,16 +124,21 @@ def main() -> None:
         "filesets:",
     ]
 
-    emit_fileset(lines, "rtl_vhdl", rtl_vhdl, "vhdlSource")
-    emit_fileset(lines, "rtl_verilog", rtl_verilog, "verilogSource")
-    emit_fileset(lines, "rtl_top", rtl_top, "vhdlSource")
-    emit_fileset(lines, "sim_vhdl", sim_vhdl, "vhdlSource")
-    emit_fileset(lines, "sim_verilog", sim_verilog, "verilogSource")
-    emit_fileset(lines, "daq_vhdl_93", daq_vhdl_93, "vhdlSource")
-    emit_fileset(lines, "daq_vhdl_2008", daq_vhdl_2008, "vhdlSource-2008")
-    emit_fileset(lines, "daq_verilog", daq_verilog, "verilogSource")
-    emit_fileset(lines, "daq_tcl", daq_tcl, "tclSource")
-    emit_fileset(lines, "daq_xci", all_xci, "xci")
+    emitted_filesets = []
+    for name, files, file_type, depends in [
+        ("rtl_vhdl", rtl_vhdl, "vhdlSource", None),
+        ("rtl_verilog", rtl_verilog, "verilogSource", None),
+        ("rtl_top", rtl_top, "vhdlSource", None),
+        ("sim_vhdl", sim_vhdl, "vhdlSource", None),
+        ("sim_verilog", sim_verilog, "verilogSource", None),
+        ("daq_vhdl_93", daq_vhdl_93, "vhdlSource", None),
+        ("daq_vhdl_2008", daq_vhdl_2008, "vhdlSource-2008", None),
+        ("daq_verilog", daq_verilog, "verilogSource", None),
+        ("daq_tcl", daq_tcl, "tclSource", None),
+        ("daq_xci", all_xci, "xci", None),
+    ]:
+        if emit_fileset(lines, name, files, file_type, depends):
+            emitted_filesets.append(name)
 
     lines.extend(
         [
@@ -141,18 +147,37 @@ def main() -> None:
             "  default: &default_target",
             "    description: Synthesizable DAPHNE3 fullstream PL source manifest",
             "    filesets:",
-            "      - rtl_vhdl",
-            "      - rtl_verilog",
-            "      - daq_vhdl_93",
-            "      - daq_vhdl_2008",
-            "      - daq_verilog",
-            "      - rtl_top",
+        ]
+    )
+
+    default_target_filesets = [
+        name
+        for name in [
+            "rtl_vhdl",
+            "rtl_verilog",
+            "rtl_top",
+            "sim_vhdl",
+            "sim_verilog",
+            "daq_vhdl_93",
+            "daq_vhdl_2008",
+            "daq_verilog",
+        ]
+        if name in emitted_filesets
+    ]
+    lines.extend([f"      - {name}" for name in default_target_filesets])
+
+    lines.extend(
+        [
             "  sim-src:",
             "    <<: *default_target",
             "    description: Source manifest including HDL test benches",
             "    filesets_append:",
-            "      - sim_vhdl",
-            "      - sim_verilog",
+        ]
+    )
+    sim_append = [name for name in ["sim_vhdl", "sim_verilog"] if name in emitted_filesets]
+    lines.extend([f"      - {name}" for name in sim_append])
+    lines.extend(
+        [
             "  vivado-src:",
             "    <<: *default_target",
             "    description: Source manifest plus Tcl/XCI collateral expected by Vivado",

@@ -5,7 +5,6 @@ ROOT_DIR="${DAPHNE_FULLSTREAM_ROOT:-$(CDPATH= cd -- "$(dirname -- "$0")/../.." &
 DEFAULT_CORE="dune-daq:daphne-fullstream:k26c-platform:0.1.0"
 DEFAULT_MODULAR_CORE="dune-daq:daphne-fullstream:k26c-modular-platform:0.1.0"
 
-MODE="build"
 DRY_RUN=0
 PLATFORM_CORE="${DAPHNE_PLATFORM_CORE:-$DEFAULT_CORE}"
 
@@ -18,7 +17,6 @@ Build the fullstream firmware through the repo-local FuseSoC platform layer.
 Options:
   --platform-core <VLNV>  Use an explicit platform core
   --modular               Use $DEFAULT_MODULAR_CORE
-  --preflight-only        Run only the Vivado packaging preflight
   --dry-run               Resolve the platform core and print what would run
   -h, --help              Show this help text
 EOF
@@ -36,9 +34,6 @@ while [ "$#" -gt 0 ]; do
       ;;
     --modular)
       PLATFORM_CORE="$DEFAULT_MODULAR_CORE"
-      ;;
-    --preflight-only)
-      MODE="preflight"
       ;;
     --dry-run)
       DRY_RUN=1
@@ -75,7 +70,7 @@ cd "$ROOT_DIR"
 
 echo "INFO: Selected FuseSoC platform core: $PLATFORM_CORE"
 echo "INFO: Resolved board profile: $BOARD"
-echo "INFO: Build mode: $MODE"
+echo "INFO: Build mode: impl"
 
 export DAPHNE_BOARD="$BOARD"
 export DAPHNE_PLATFORM_CORE="$PLATFORM_CORE"
@@ -85,8 +80,8 @@ if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 
-"$ROOT_DIR/scripts/fusesoc/preflight_vivado_build.sh"
-
-if [ "$MODE" = "build" ]; then
-  "$ROOT_DIR/scripts/fusesoc/run_vivado_batch.sh"
-fi
+exec "$ROOT_DIR/scripts/fusesoc/fusesoc.sh" run \
+  --setup \
+  --build \
+  --target impl \
+  "$PLATFORM_CORE"
