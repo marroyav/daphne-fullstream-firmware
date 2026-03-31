@@ -1,0 +1,16 @@
+[options]
+mode prove
+depth 1
+
+[engines]
+smtbmc z3
+
+[script]
+plugin -i ghdl
+ghdl --std=08 daphne3_package.vhd stream_mux_select.vhd stream_mux_select_formal.vhd -e stream_mux_select_formal
+prep -top stream_mux_select_formal
+
+[files]
+../../ip_repo/daphne3_ip/rtl/daphne3_package.vhd
+../../ip_repo/daphne3_ip/rtl/stream/stream_mux_select.vhd
+../vhdl/stream_mux_select_formal.vhd
