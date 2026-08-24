@@ -110,7 +110,10 @@ architecture behavioral of tx_path_top is
         return natural is
         variable result: natural;
     begin
-        result := g_num_of_arp_pos when g_inc_luts else 0;
+        -- Keep one inactive position when LUT mode is disabled.  The ARP
+        -- responder still uses position-indexed internal objects, and a zero
+        -- position count creates null scalar ranges in Vivado 2026.1.
+        result := g_num_of_arp_pos when g_inc_luts else 1;
         return result;
     end function;
     
