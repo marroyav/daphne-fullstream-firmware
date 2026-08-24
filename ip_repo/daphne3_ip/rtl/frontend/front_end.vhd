@@ -144,7 +144,7 @@ begin
     -- this controller is required for calibrating IDELAY elements...
 
     IDELAYCTRL_inst: IDELAYCTRL
-        generic map( SIM_DEVICE => "ULTRASCALE" )
+        generic map( SIM_DEVICE => "ULTRASCALE_PLUS" )
         port map(
             REFCLK => clk500,
             RST    => idelayctrl_reset_clk500, -- sync to clk500
