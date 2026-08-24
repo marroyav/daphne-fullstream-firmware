@@ -89,6 +89,9 @@ proc daphne_fullstream_prepare_project {cfg_name} {
 proc daphne_fullstream_create_block_design {cfg_name} {
     upvar 1 $cfg_name cfg
 
+    # The imported block-design generator still consumes this legacy variable
+    # from the caller's Tcl scope when it stamps the firmware version nibble.
+    set bd_git_sha $cfg(bd_git_sha)
     source -notrace [file join $cfg(script_dir) "daphne_fullstream_bd_gen.tcl"]
     read_bd [file join ".." "bd" $cfg(bd_name) "$cfg(bd_name).bd"]
     make_wrapper -top -files [get_files [file join ".." "bd" $cfg(bd_name) "$cfg(bd_name).bd"]]

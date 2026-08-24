@@ -14,9 +14,15 @@ OUT_PATH = OUT_DIR / "daphne-fullstream-ip.core"
 CORE_PREFIX = "../../"
 
 
-def sorted_relative_files(base: Path, pattern: str) -> list[str]:
+def sorted_relative_files(
+    base: Path, pattern: str, excluded_dirs: set[str] | None = None
+) -> list[str]:
+    excluded_dirs = excluded_dirs or set()
     return sorted(
-        p.relative_to(ROOT).as_posix() for p in base.rglob(pattern) if p.is_file()
+        p.relative_to(ROOT).as_posix()
+        for p in base.rglob(pattern)
+        if p.is_file()
+        and not excluded_dirs.intersection(p.relative_to(base).parts)
     )
 
 
@@ -33,6 +39,23 @@ def extract_quoted_list(text: str, pattern: str) -> list[str]:
     if not match:
         raise RuntimeError(f"Could not find pattern: {pattern}")
     return re.findall(r'"([^"]+)"', match.group(1))
+
+
+def extract_ignore_list(text: str, assignment: str, source: str) -> list[str]:
+    pattern = (
+        rf"set {re.escape(assignment)} \[ignore_files \${re.escape(source)} "
+        r'(\{.*?\}|".*?")\]'
+    )
+    match = re.search(pattern, text, flags=re.S)
+    if not match:
+        raise RuntimeError(f"Could not find ignore_files assignment for {assignment}")
+
+    value = match.group(1)
+    if value.startswith('"'):
+        return [value[1:-1]]
+
+    items = re.findall(r'"([^"]+)"', value[1:-1])
+    return items if items else value[1:-1].split()
 
 
 def emit_fileset(
@@ -70,10 +93,7 @@ def main() -> None:
         extract_quoted_list(tcl_text, r"set wibTypeExceptionList \{(.*?)\}")
     )
     daq_xci_ignored = set(
-        extract_quoted_list(
-            tcl_text,
-            r'set xciDAQFiles \[ignore_files \$xciDAQFiles_aux "(.*?)"\]',
-        )
+        extract_ignore_list(tcl_text, "xciDAQFiles", "xciDAQFiles_aux")
     )
 
     rtl_root = ROOT / "ip_repo" / "daphne3_ip" / "rtl"
@@ -87,6 +107,7 @@ def main() -> None:
         / "src"
     )
     ips_root = ROOT / "ip_repo" / "daphne3_ip" / "ips"
+    generated_daq_dirs = {"axi4_lite_bram_ctrl_0", "xxv_ethernet_0"}
 
     rtl_vhdl = core_relative(
         basename_filtered(sorted_relative_files(rtl_root, "*.vhd"), rtl_ignored)
@@ -97,19 +118,30 @@ def main() -> None:
     sim_vhdl = core_relative(sorted_relative_files(sim_root, "*.vhd"))
     sim_verilog = core_relative(sorted_relative_files(sim_root, "*.v"))
 
-    daq_vhdl_all = sorted_relative_files(daq_root, "*.vhd")
+    daq_vhdl_all = sorted_relative_files(
+        daq_root, "*.vhd", excluded_dirs=generated_daq_dirs
+    )
     daq_vhdl_93 = [p for p in daq_vhdl_all if Path(p).name in wib_type_exceptions]
     daq_vhdl_2008 = [p for p in daq_vhdl_all if Path(p).name not in wib_type_exceptions]
     daq_vhdl_93 = core_relative(daq_vhdl_93)
     daq_vhdl_2008 = core_relative(daq_vhdl_2008)
-    daq_verilog = core_relative(sorted_relative_files(daq_root, "*.v"))
-    daq_tcl = core_relative(sorted_relative_files(daq_root, "*.tcl"))
+    daq_verilog = core_relative(
+        sorted_relative_files(daq_root, "*.v", excluded_dirs=generated_daq_dirs)
+    )
+    daq_tcl = core_relative(
+        sorted_relative_files(daq_root, "*.tcl", excluded_dirs=generated_daq_dirs)
+    )
 
     local_xci = (
         core_relative(sorted_relative_files(ips_root, "*.xci")) if ips_root.exists() else []
     )
     daq_xci = core_relative(
-        basename_filtered(sorted_relative_files(daq_root, "*.xci"), daq_xci_ignored)
+        basename_filtered(
+            sorted_relative_files(
+                daq_root, "*.xci", excluded_dirs=generated_daq_dirs
+            ),
+            daq_xci_ignored,
+        )
     )
     all_xci = sorted(set(local_xci + daq_xci))
 

@@ -226,8 +226,10 @@ set xpgui_files [ipx::add_file_group xilinx_xpgui $daphne]
 # External files, only if want to add READMEs, Python scripts, etc.
 # set miscExternalFiles [ipx::add_file_group xilinx_externalfiles $daphne]
 
-# list IP VLNVs
-set ipVlnv [list $axi_bram_ctrl_vlnv $xxv_ethernet_vlnv]
+# Package the AXI BRAM controller as a DAPHNE subcore.  XXV Ethernet is kept as
+# a project-level IP: Vivado 2026.1 cannot regenerate it correctly when its XCI
+# is embedded in the surrounding DAPHNE component.xml.
+set ipVlnv [list $axi_bram_ctrl_vlnv]
 
 # Sub IP file groups
 foreach ipChoice $ipVlnv {
@@ -259,7 +261,7 @@ set tclConstDir [file normalize "../ip_repo/daphne3_ip/src/dune.daq_user_hermes_
 # generate file lists
 set xciFiles [get_files_recursive $xciDir "*.xci"]
 set xciDAQFiles_aux [get_files_recursive $rtlDAQDir "*.xci"]
-set xciDAQFiles [ignore_files $xciDAQFiles_aux "xxv_ethernet_0_gt.xci"]
+set xciDAQFiles [ignore_files $xciDAQFiles_aux {"xxv_ethernet_0.xci" "xxv_ethernet_0_gt.xci"}]
 
 set vhdlFiles_aux [get_files_recursive $rtlDir "*.vhd"]
 set vhdlFiles [ignore_files $vhdlFiles_aux {"daphne3.vhd" "auto_afe.vhd" "auto_fsm.vhd" "i2cm.vhd" "spim_cm.vhd" "DAQ_CLOCKS.vhd" "AXI_RAM.vhd" "stream_top_wrapper.vhd" "stream8.vhd"}]
@@ -270,6 +272,12 @@ set tbFilesVerilog [get_files_recursive $tbDir "*.v"]
 
 set vhdlDAQFiles [get_files_recursive $rtlDAQDir "*.vhd"]
 set verilogDAQFiles [get_files_recursive $rtlDAQDir "*.v"]
+
+# Generate XXV products while it is still an ordinary project IP.  The source
+# lists above are intentionally captured first so generated HDL remains owned
+# by the outer Vivado project rather than being absorbed into component.xml.
+puts "INFO: Generating project-level XXV Ethernet output products before DAPHNE packaging."
+generate_target all [get_ips xxv_ethernet_0]
 # define the vhdl sources that use vhdl Source by default as type, the rest use whdl source 2008 version
 set wibTypeExceptionList {
     "freq_ctr_div.vhd"
@@ -319,25 +327,21 @@ foreach daqIPType $xciDAQFiles {
     ipx::add_file -name $daqIPType -file_group $lang_sim
 }
 
-# ethernet sub core must be in implementation files group
-ipx::add_file -name [file normalize "../ip_repo/daphne3_ip/src/dune.daq_user_hermes_daphne_1.1/src/xxv_ethernet_0/xxv_ethernet_0.xci"] -file_group $impl_files
-
 # # obtain the specific .xci files
 set anylanguageSynthFg [ipx::get_file_groups xilinx_anylanguagesynthesis -of_objects $daphne]
 set anybehavioralSynthFg [ipx::get_file_groups xilinx_anylanguagebehavioralsimulation -of_objects $daphne]
-set implFg [ipx::get_file_groups xilinx_implementation -of_objects $daphne]
-set ethFileObjLan [ipx::get_files "src/dune.daq_user_hermes_daphne_1.1/src/xxv_ethernet_0/xxv_ethernet_0.xci" -of_objects $anylanguageSynthFg]
 set bramFileObjLan [ipx::get_files "src/dune.daq_user_hermes_daphne_1.1/src/axi4_lite_bram_ctrl_0/axi4_lite_bram_ctrl_0.xci" -of_objects $anylanguageSynthFg]
-set ethFileObjSim [ipx::get_files "src/dune.daq_user_hermes_daphne_1.1/src/xxv_ethernet_0/xxv_ethernet_0.xci" -of_objects $anybehavioralSynthFg]
 set bramFileObjSim [ipx::get_files "src/dune.daq_user_hermes_daphne_1.1/src/axi4_lite_bram_ctrl_0/axi4_lite_bram_ctrl_0.xci" -of_objects $anybehavioralSynthFg]
-set implFileObj [ipx::get_files "src/dune.daq_user_hermes_daphne_1.1/src/xxv_ethernet_0/xxv_ethernet_0.xci" -of_objects $implFg]
+
+set ethXCIDir [file normalize "../ip_repo/daphne3_ip/src/dune.daq_user_hermes_daphne_1.1/src/xxv_ethernet_0/xxv_ethernet_0.xci"]
+if {![file exists $ethXCIDir]} {
+    error "ERROR: Project-level XXV Ethernet XCI is missing at $ethXCIDir"
+}
+puts "INFO: Leaving XXV Ethernet XCI outside component.xml for project-level synthesis: $ethXCIDir"
 
 # set property for cell name
-set_property CELL_NAME hermes_module_inst/daphne_streaming_top_inst/mux/pcs_pma/phy_gen[0].phy_10gbe $ethFileObjLan
 set_property CELL_NAME hermes_module_inst/daphne_streaming_top_inst/ipb_ctrl/ipbus_transport_axil/axi_bram_ctrl $bramFileObjLan
-set_property CELL_NAME hermes_module_inst/daphne_streaming_top_inst/mux/pcs_pma/phy_gen[0].phy_10gbe $ethFileObjSim
 set_property CELL_NAME hermes_module_inst/daphne_streaming_top_inst/ipb_ctrl/ipbus_transport_axil/axi_bram_ctrl $bramFileObjSim
-set_property CELL_NAME hermes_module_inst/daphne_streaming_top_inst/mux/pcs_pma/phy_gen[0].phy_10gbe $implFileObj
 
 # VHDL files
 foreach vhdlType $vhdlFiles {

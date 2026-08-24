@@ -53,15 +53,17 @@ if [ ! -f "$eth_xci" ]; then
   exit 2
 fi
 
-if ! grep -Fq "$eth_xci_ref" "$component_xml"; then
-  echo "ERROR: component.xml is missing Ethernet XCI reference: $eth_xci_ref" >&2
+if grep -Fq "$eth_xci_ref" "$component_xml"; then
+  echo "ERROR: component.xml embeds the project-level Ethernet XCI: $eth_xci_ref" >&2
+  echo "Vivado 2026.1 cannot regenerate that nested XXV Ethernet core." >&2
   exit 2
 fi
 
-if ! grep -Fq "$eth_binding" "$component_xml"; then
-  echo "ERROR: component.xml is missing Ethernet cell binding: $eth_binding" >&2
+if grep -Fq "$eth_binding" "$component_xml"; then
+  echo "ERROR: component.xml still contains the obsolete nested Ethernet cell binding: $eth_binding" >&2
   exit 2
 fi
 
 echo "INFO: Preflight passed."
-echo "INFO: Ethernet XCI and phy_10gbe binding are present in component.xml."
+echo "INFO: XXV Ethernet output products generated at project level."
+echo "INFO: Ethernet XCI is deliberately absent from component.xml."

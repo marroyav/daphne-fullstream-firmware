@@ -67,6 +67,9 @@ Useful entry points:
 ./scripts/fusesoc/build_platform.sh
 ```
 
+For a short Cooper recipe, output checks, and recovery notes, see
+[Build full-stream firmware on Cooper](docs/build-fullstream-on-cooper.md).
+
 What that layer does today:
 
 - generates a source-manifest core from `xilinx/daphne_fullstream_ip_gen.tcl`
