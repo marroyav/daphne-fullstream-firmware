@@ -1,29 +1,19 @@
--- stuff.vhd
+-- Legacy entity name; this is the board-control AXI-Lite register block.
 --
--- this module is a "catch all" for a bunch of misc stuff that exists on the PL side
--- and needs to connect to the PS side via a single axi-lite interface.
+-- All offsets are byte offsets from the slave base address. Reserved bits read
+-- as zero, unknown addresses read as zero, and writes require all four byte
+-- strobes.
 --
--- "stuff" has some 32-bit registers:
---
--- base+00: fan speed control register, 8 bits, R/W. 
---          0x00=off, 0xFF=full speed. power on default is full speed.
--- base+04: fan0 speed in RPM, 12 bits unsigned, R/O
--- base+08: fan1 speed in RPM, 12 bits unsigned, R/O
--- base+12: vbias control, one bit, R/W
--- base+16: analog mux enable lines (mux_en), 2 bits, R/W
--- base+20: analog mux address lines (mux_a), 2 bits, R/W
--- base+24: status LEDs, 6 bits, R/W
--- base+28: the GIT commit number, 28 bits, R/O
--- base+32: self triggered mode channel enable ch31..ch00 (31..0) R/W 
--- base+36: self triggered mode channel enable ch39..ch32 (7..0) R/W 
-
--- *** TO DO:
--- base+32: link_id(5..0) R/W 
--- base+36: slot_id(3..0) R/W 
--- base+40: crate_id(9..0) R/W 
--- base+44: detector_id(5..0) R/W 
--- base+48: version_id(5..0) R/W 
--- base+52: threshold(13..0) R/W 
+--   +0x00  fan PWM demand, bits 7:0, read/write; reset value 0xFF
+--   +0x04  fan 0 speed in RPM, bits 11:0, read-only
+--   +0x08  fan 1 speed in RPM, bits 11:0, read-only
+--   +0x0C  high-voltage bias enable, bit 0, read/write
+--   +0x10  analog mux enables, bits 1:0, read/write
+--   +0x14  analog mux address, bits 1:0, read/write
+--   +0x18  status LEDs, bits 5:0, read/write
+--   +0x1C  firmware version nibble, bits 3:0, read-only
+--   +0x20  channel enables 31:0, read/write
+--   +0x24  channel enables 39:32, read/write
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -80,25 +70,14 @@ architecture stuff_arch of stuff is
 	signal axi_rdata: std_logic_vector(31 downto 0);
 	signal axi_rresp: std_logic_vector(1 downto 0);
 	signal axi_rvalid: std_logic;
-	signal axi_arready_reg: std_logic;
-    signal axi_arvalid: std_logic;    
 	signal reg_rden: std_logic;
 	signal reg_wren: std_logic;
 	signal reg_data_out:std_logic_vector(31 downto 0);
 	signal aw_en: std_logic;
    
-    component fanmon is
-    port(
-        clock: in std_logic;
-        reset: in std_logic;
-        tach: in std_logic;
-        rpm: out std_logic_vector(11 downto 0)
-      );
-    end component;
-
     signal reset: std_logic;
     signal fan_count_reg: std_logic_vector(11 downto 0) := X"000";
-    signal fan_speed_reg: std_logic_vector(7 downto 0) := X"FF"; 
+    signal fan_speed_cfg_reg: std_logic_vector(7 downto 0) := X"FF";
     signal fan_ctrl_reg: std_logic;
     signal fan0_rpm, fan1_rpm: std_logic_vector(11 downto 0);
     signal stat_led_reg: std_logic_vector(5 downto 0) := "000000";
@@ -138,20 +117,19 @@ reset <= not S_AXI_ARESETN;
 
 -- take the 100MHz AXI clock and divide it by 4096 to produce 24.4kHz clock
 -- suitable for driving the fan speed pwm signal. duty cycle is controlled by
--- fan_speed_reg: 0 = fan off, 255 = fan full speed.
+-- fan_speed_cfg_reg: 0 = fan off, 255 = fan full speed.
 
 fanspeed_proc: process(S_AXI_ACLK)
 begin
     if rising_edge(S_AXI_ACLK) then
         if (reset='1') then
             fan_count_reg <= (others=>'0');
-            fan_speed_reg <= X"FF";
             fan_ctrl_reg <= '0';
         else
             fan_count_reg <= std_logic_vector( unsigned(fan_count_reg) + 1 );
             if (fan_count_reg = X"000") then
                 fan_ctrl_reg <= '1'; 
-            elsif (fan_count_reg(11 downto 4)=fan_speed_reg) then
+            elsif (fan_count_reg(11 downto 4)=fan_speed_cfg_reg) then
                 fan_ctrl_reg <= '0';
             end if;
         end if;
@@ -160,10 +138,10 @@ end process fanspeed_proc;
 
 -- fan speed monitoring
 
-fanmon0_inst: fanmon
+fanmon0_inst: entity work.fanmon
 port map( clock => S_AXI_ACLK, reset => reset, tach => fan_tach(0), rpm => fan0_rpm );
 
-fanmon1_inst: fanmon
+fanmon1_inst: entity work.fanmon
 port map( clock => S_AXI_ACLK, reset => reset, tach => fan_tach(1), rpm => fan1_rpm );
 
 -- AXI-LITE slave interface logic
@@ -262,7 +240,7 @@ process (S_AXI_ACLK)
 begin
   if rising_edge(S_AXI_ACLK) then 
     if (S_AXI_ARESETN = '0') then
-        fan_speed_reg <= X"FF";
+        fan_speed_cfg_reg <= X"FF";
         hvbias_en_reg <= '0';
         mux_en_reg <= "00";
         mux_a_reg <= "00";
@@ -277,7 +255,7 @@ begin
         case ( axi_awaddr(5 downto 0) ) is
 
           when FANCTRL_OFFSET => 
-            fan_speed_reg <= S_AXI_WDATA(7 downto 0);
+            fan_speed_cfg_reg <= S_AXI_WDATA(7 downto 0);
 
           when HVBIAS_OFFSET => 
             hvbias_en_reg <= S_AXI_WDATA(0);
@@ -387,21 +365,51 @@ end process;
 -- Implement memory mapped register select and read logic generation
 -- Slave register read enable is asserted when valid address is available
 -- and the slave is ready to accept the read address.
--- reg_data_out is 32 bits
+-- Keep the read mux explicit: each register occupies the low documented bits,
+-- and every reserved bit has a deterministic zero value.
 
 reg_rden <= axi_arready and S_AXI_ARVALID and (not axi_rvalid) ;
 
---reg_data_out <= (X"000000" & fan_speed_reg)                    when (axi_araddr(5 downto 0)=FANCTRL_OFFSET) else
- --               (X"00000" & fan0_rpm)                          when (axi_araddr(5 downto 0)=FAN0SPD_OFFSET) else
---                (X"00000" & fan1_rpm)                          when (axi_araddr(5 downto 0)=FAN1SPD_OFFSET) else
----                (X"0000000" & "000" & hvbias_en_reg)           when (axi_araddr(5 downto 0)=HVBIAS_OFFSET) else
- --               (X"0000000" & "00" & mux_en_reg)               when (axi_araddr(5 downto 0)=MUXEN_OFFSET) else
- --               (X"0000000" & "00" & mux_a_reg)                when (axi_araddr(5 downto 0)=MUXA_OFFSET) else
- --               (X"000000" & "00" & stat_led_reg)              when (axi_araddr(5 downto 0)=LED_OFFSET) else
- --               ("0000000" & version)                          when (axi_araddr(5 downto 0)=VER_OFFSET) else
-  --              core_enable_reg(31 downto 0)                   when (axi_araddr(5 downto 0)=CORE_EN_LO_OFFSET) else
- --               (X"000000" & core_enable_reg(39 downto 32))    when (axi_araddr(5 downto 0)=CORE_EN_HI_OFFSET) else
- --               X"00000000";
+read_mux_proc : process(
+    axi_araddr,
+    fan_speed_cfg_reg,
+    fan0_rpm,
+    fan1_rpm,
+    hvbias_en_reg,
+    mux_en_reg,
+    mux_a_reg,
+    stat_led_reg,
+    version,
+    core_enable_reg
+) is
+begin
+    reg_data_out <= (others => '0');
+
+    case axi_araddr(5 downto 0) is
+        when FANCTRL_OFFSET =>
+            reg_data_out(7 downto 0) <= fan_speed_cfg_reg;
+        when FAN0SPD_OFFSET =>
+            reg_data_out(11 downto 0) <= fan0_rpm;
+        when FAN1SPD_OFFSET =>
+            reg_data_out(11 downto 0) <= fan1_rpm;
+        when HVBIAS_OFFSET =>
+            reg_data_out(0) <= hvbias_en_reg;
+        when MUXEN_OFFSET =>
+            reg_data_out(1 downto 0) <= mux_en_reg;
+        when MUXA_OFFSET =>
+            reg_data_out(1 downto 0) <= mux_a_reg;
+        when LED_OFFSET =>
+            reg_data_out(5 downto 0) <= stat_led_reg;
+        when VER_OFFSET =>
+            reg_data_out(3 downto 0) <= version;
+        when CORE_EN_LO_OFFSET =>
+            reg_data_out <= core_enable_reg(31 downto 0);
+        when CORE_EN_HI_OFFSET =>
+            reg_data_out(7 downto 0) <= core_enable_reg(39 downto 32);
+        when others =>
+            null;
+    end case;
+end process read_mux_proc;
 
 -- Output register or memory read data
 process( S_AXI_ACLK ) is

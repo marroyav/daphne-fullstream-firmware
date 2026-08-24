@@ -42,6 +42,8 @@ Good result: the final checker line starts with `RESULT: PASS`.
 
 ## What has been checked
 
+- the fan monitor and all implemented board-control register write/readback
+  paths pass GHDL smoke tests
 - all seven checked-in formal jobs pass
 - the source manifest and build preflight pass
 - synthesis, implementation, timing, DRC, power reporting, and overlay
@@ -49,6 +51,13 @@ Good result: the final checker line starts with `RESULT: PASS`.
 
 Formal verification covers the modular boundaries and extracted selector. It
 does not prove the complete imported full-stream datapath.
+
+Run both vendor-neutral suites with:
+
+```bash
+./scripts/fusesoc/run_logic_test.sh
+./scripts/formal/run_formal.sh
+```
 
 ## What still needs a board
 

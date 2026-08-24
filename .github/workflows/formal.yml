@@ -20,6 +20,12 @@ jobs:
           version: '2026-04-08'
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install FuseSoC
+        run: python3 -m pip install --user 'fusesoc==2.4.3'
+
+      - name: Run GHDL smoke tests
+        run: ./scripts/fusesoc/run_logic_test.sh
+
       - name: Run formal suite
         run: ./scripts/formal/run_formal.sh
 

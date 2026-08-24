@@ -55,6 +55,13 @@ The `.bit` file programs the FPGA directly. The overlay ZIP contains the
 
 ## Run the formal checks
 
+Run the small GHDL tests first. They exercise the fan monitor and every
+implemented board-control register write/readback path:
+
+```bash
+./scripts/fusesoc/run_logic_test.sh
+```
+
 The formal suite covers the modular boundaries and the extracted stream
 selector. It does not prove the complete imported full-stream implementation.
 
@@ -75,6 +82,7 @@ See [formal/README.md](formal/README.md) for the exact proof scope and
 - `ip_repo/daphne3_ip/rtl/isolated/`: additive modular boundaries
 - `cores/`: FuseSoC core descriptions
 - `formal/`: proof jobs, harnesses, and contracts
+- `tests/logic/`: fast, vendor-neutral RTL behavior tests
 - `scripts/fusesoc/`: build, package, and result-checking commands
 - `docs/`: architecture, transition, and operator guides
 
