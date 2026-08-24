@@ -86,6 +86,26 @@ proc ignore_files {listToVerify itemsToIgnore} {
     return $newList
 }
 
+# Keep additive source scaffolds out of the imported legacy IP package.  Those
+# files have their own FuseSoC cores and are not instantiated by daphne3.vhd.
+proc ignore_directories {listToVerify directoriesToIgnore} {
+    set newList {}
+    foreach item $listToVerify {
+        set skip 0
+        set normalizedItem [string map {\\ /} [file normalize $item]]
+        foreach ignoredDirectory $directoriesToIgnore {
+            if {[string match "*/${ignoredDirectory}/*" $normalizedItem]} {
+                set skip 1
+                break
+            }
+        }
+        if {!$skip} {
+            lappend newList $item
+        }
+    }
+    return $newList
+}
+
 # create a proc in order to find the latest version of an IP definition int he catalog
 # that matche the IP that is intended to be created
 proc get_latest_ip_vlnv {ipSel} {
@@ -263,9 +283,9 @@ set xciFiles [get_files_recursive $xciDir "*.xci"]
 set xciDAQFiles_aux [get_files_recursive $rtlDAQDir "*.xci"]
 set xciDAQFiles [ignore_files $xciDAQFiles_aux {"xxv_ethernet_0.xci" "xxv_ethernet_0_gt.xci"}]
 
-set vhdlFiles_aux [get_files_recursive $rtlDir "*.vhd"]
+set vhdlFiles_aux [ignore_directories [get_files_recursive $rtlDir "*.vhd"] {"isolated"}]
 set vhdlFiles [ignore_files $vhdlFiles_aux {"daphne3.vhd" "auto_afe.vhd" "auto_fsm.vhd" "i2cm.vhd" "spim_cm.vhd" "DAQ_CLOCKS.vhd" "AXI_RAM.vhd" "stream_top_wrapper.vhd" "stream8.vhd"}]
-set verilogFiles [get_files_recursive $rtlDir "*.v"]
+set verilogFiles [ignore_directories [get_files_recursive $rtlDir "*.v"] {"isolated"}]
 
 set tbFilesVhdl [get_files_recursive $tbDir "*.vhd"]
 set tbFilesVerilog [get_files_recursive $tbDir "*.v"]

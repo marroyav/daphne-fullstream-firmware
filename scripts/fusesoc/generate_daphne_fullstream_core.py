@@ -108,11 +108,21 @@ def main() -> None:
     )
     ips_root = ROOT / "ip_repo" / "daphne3_ip" / "ips"
     generated_daq_dirs = {"axi4_lite_bram_ctrl_0", "xxv_ethernet_0"}
+    additive_rtl_dirs = {"isolated"}
 
     rtl_vhdl = core_relative(
-        basename_filtered(sorted_relative_files(rtl_root, "*.vhd"), rtl_ignored)
+        basename_filtered(
+            sorted_relative_files(
+                rtl_root, "*.vhd", excluded_dirs=additive_rtl_dirs
+            ),
+            rtl_ignored,
+        )
     )
-    rtl_verilog = core_relative(sorted_relative_files(rtl_root, "*.v"))
+    rtl_verilog = core_relative(
+        sorted_relative_files(
+            rtl_root, "*.v", excluded_dirs=additive_rtl_dirs
+        )
+    )
     rtl_top = [f"{CORE_PREFIX}ip_repo/daphne3_ip/rtl/daphne3.vhd"]
 
     sim_vhdl = core_relative(sorted_relative_files(sim_root, "*.vhd"))
