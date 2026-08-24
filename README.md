@@ -17,6 +17,7 @@ The supported release build uses:
 Use the short operator guide:
 
 - [Build full-stream firmware on Cooper](docs/build-fullstream-on-cooper.md)
+- [Current full-stream release candidate](docs/releases/fullstream-2026.08.24-rc1.md)
 
 From an initialized Vivado/Vitis 2026.1 shell, the core commands are:
 
