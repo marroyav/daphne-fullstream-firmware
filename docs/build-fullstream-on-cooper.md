@@ -100,5 +100,12 @@ The `.bit` file is for FPGA programming. The overlay `.zip` contains the `.bin`,
 - Timing failed: do not deploy that bitstream. Open
   `post_route_timing_summary.rpt` and search for `VIOLATED`.
 - Device-tree generation failed after the bitstream was written: keep the `.bit`
-  and `.xsa`, fix the Vitis/PetaLinux environment, and rerun in a new output
-  directory.
+  and `.xsa`. With the Vivado/Vitis environment still loaded, package those
+  completed files without rebuilding the FPGA:
+
+  ```bash
+  ./scripts/fusesoc/package_fullstream_overlay.sh "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
+  ./scripts/fusesoc/check_build_outputs.sh "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
+  ```
+
+  Vivado 2026.1 uses `sdtgen`; the retired XSCT command is not required.

@@ -30,6 +30,7 @@ echo "Checking fullstream build $GIT_SHA"
 echo "Output directory: $OUTPUT_DIR"
 
 check_file "FPGA bitstream" "$OUTPUT_DIR/$BUILD_NAME.bit"
+check_file "FPGA binary" "$OUTPUT_DIR/$BUILD_NAME.bin"
 check_file "hardware XSA" "$OUTPUT_DIR/$BUILD_NAME.xsa"
 check_file "debug probes" "$OUTPUT_DIR/probes.ltx"
 check_file "overlay bitstream" "$OVERLAY_DIR/$OVERLAY_NAME.bin"
@@ -60,6 +61,34 @@ if command -v unzip >/dev/null 2>&1 && [ -s "$OUTPUT_DIR/$OVERLAY_NAME.zip" ]; t
   else
     echo "FAIL  overlay archive is corrupt" >&2
     failed=1
+  fi
+fi
+
+if command -v unzip >/dev/null 2>&1 && [ -s "$OUTPUT_DIR/$BUILD_NAME.xsa" ]; then
+  if unzip -tqq "$OUTPUT_DIR/$BUILD_NAME.xsa"; then
+    echo "PASS  hardware XSA integrity"
+  else
+    echo "FAIL  hardware XSA is corrupt" >&2
+    failed=1
+  fi
+fi
+
+if command -v dtc >/dev/null 2>&1 && [ -s "$OVERLAY_DIR/$OVERLAY_NAME.dtbo" ]; then
+  if dtc -I dtb -O dts -o /dev/null "$OVERLAY_DIR/$OVERLAY_NAME.dtbo" 2>/dev/null; then
+    echo "PASS  device-tree blob parses"
+  else
+    echo "FAIL  device-tree blob does not parse" >&2
+    failed=1
+  fi
+fi
+
+drc_report="$OUTPUT_DIR/post_imp_drc.rpt"
+if [ -s "$drc_report" ]; then
+  if grep -Eq '^[A-Z0-9-]+#[0-9]+[[:space:]]+(Error|Critical)' "$drc_report"; then
+    echo "FAIL  error-level DRC violations are present in $drc_report" >&2
+    failed=1
+  else
+    echo "PASS  no error-level DRC violations"
   fi
 fi
 
