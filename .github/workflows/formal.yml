@@ -1,0 +1,36 @@
+name: Formal
+
+on:
+  pull_request:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  formal:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: YosysHQ/setup-oss-cad-suite@v4
+        with:
+          version: '2026-04-08'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run formal suite
+        run: ./scripts/formal/run_formal.sh
+
+      - name: Upload failed formal logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: formal-failure-logs
+          path: |
+            formal/sby/**/logfile.txt
+            formal/sby/**/engine_0/trace*.vcd
+            formal/sby/**/model/design*.log
+          if-no-files-found: warn
+          retention-days: 14
