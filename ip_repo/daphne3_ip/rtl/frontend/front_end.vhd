@@ -81,13 +81,18 @@ end front_end;
 architecture fe_arch of front_end is
 
     signal clock_out_temp: std_logic;
-    signal idelayctrl_reset, idelayctrl_reset_clk500, idelayctrl_ready: std_logic;
+    signal idelayctrl_reset, idelayctrl_reset_clk500_meta, idelayctrl_reset_clk500, idelayctrl_ready: std_logic := '0';
     signal idelay_tap: array_5x9_type;
-    signal idelay_load, idelay_load_clk125: std_logic_vector(4 downto 0);
+    signal idelay_load, idelay_load_clk125_meta, idelay_load_clk125: std_logic_vector(4 downto 0) := (others => '0');
     signal idelay_en_vtc: std_logic;
     signal iserdes_bitslip: array_5x4_type;
     signal iserdes_reset: std_logic;
-    signal trig_axi, trig_reg: std_logic := '0';
+    signal trig_axi, trig_clock_meta, trig_reg: std_logic := '0';
+
+    attribute ASYNC_REG: string;
+    attribute ASYNC_REG of idelayctrl_reset_clk500_meta, idelayctrl_reset_clk500: signal is "TRUE";
+    attribute ASYNC_REG of idelay_load_clk125_meta, idelay_load_clk125: signal is "TRUE";
+    attribute ASYNC_REG of trig_clock_meta, trig_reg: signal is "TRUE";
 
     component febit3
     port(
@@ -246,26 +251,29 @@ begin
 
     -- IDELAYCTRL_RESET originates in S_AXI_ACLK, must be resynced in clk500 domain.
 
-    -- TRIG_AXI originates in S_AXI_ACLK and is a short momentary pulse (two cycles long), must be resynced to clock domain.
+    -- TRIG_AXI originates in S_AXI_ACLK as a stretched pulse and must be resynced to the 62.5 MHz clock domain.
 
     clk125_resync_proc: process(clk125)
     begin
         if rising_edge(clk125) then
-            idelay_load_clk125 <= idelay_load;
+            idelay_load_clk125_meta <= idelay_load;
+            idelay_load_clk125 <= idelay_load_clk125_meta;
         end if;
     end process clk125_resync_proc;
 
     clk500_resync_proc: process(clk500)
     begin
         if rising_edge(clk500) then
-            idelayctrl_reset_clk500 <= idelayctrl_reset;
+            idelayctrl_reset_clk500_meta <= idelayctrl_reset;
+            idelayctrl_reset_clk500 <= idelayctrl_reset_clk500_meta;
         end if;
     end process clk500_resync_proc;
 
     clock_resync_proc: process(clock)
     begin
-        if rising_edge(clk500) then
-            trig_reg <= trig_axi;
+        if rising_edge(clock) then
+            trig_clock_meta <= trig_axi;
+            trig_reg <= trig_clock_meta;
         end if;
     end process clock_resync_proc;
 
