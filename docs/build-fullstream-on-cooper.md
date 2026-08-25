@@ -4,24 +4,29 @@ This is the short, repeatable path for the K26C DAPHNE board. The build creates
 the FPGA bitstream, hardware handoff, device-tree overlay, reports, and a zipped
 overlay.
 
-## 1. Log in
+## Log in
 
 On the Linux workstation:
 
 ```bash
-kinit arroyave@FNAL.GOV
-ssh -K -tt fnal-workstation-bridge 'ssh -K arroyave@cooper.dhcp.fnal.gov'
+FNAL_USER=REPLACE_WITH_FNAL_USERNAME
+kinit "$FNAL_USER@FNAL.GOV"
+ssh -K -tt fnal-workstation-bridge \
+  "ssh -K $FNAL_USER@cooper.dhcp.fnal.gov"
 ```
 
 If SSH says `Permission denied (gssapi...)`, the FNAL ticket is missing or has
-expired. Run `kinit arroyave@FNAL.GOV` again on the workstation, then retry.
+expired. Run `kinit "$FNAL_USER@FNAL.GOV"` again on the workstation, then
+retry.
 
-## 2. Prepare the build shell
+## Prepare the build shell
 
-On Cooper, enter a clean clone of this repository:
+On Cooper, enter a clean detached checkout of the approved full commit or tag.
+Do not release a build from a moving branch:
 
 ```bash
 cd /path/to/daphne-fullstream-firmware
+git status --short
 source /tools/2026.1/Vitis/settings64.sh
 source /tools/petalinux/settings.sh
 ```
@@ -38,10 +43,13 @@ Detach with `Ctrl-b d`. Return later with:
 tmux attach -t daphne-fullstream
 ```
 
-## 3. Run the quick checks
+## Run the quick checks
 
 ```bash
 ./scripts/fusesoc/refresh_cores.sh
+git diff --exit-code -- cores/generated/daphne-fullstream-ip.core
+python3 scripts/check_documentation.py
+python3 scripts/check_register_map.py
 ./scripts/fusesoc/build_platform.sh --dry-run
 ./scripts/fusesoc/preflight_vivado_build.sh
 ```
@@ -49,7 +57,7 @@ tmux attach -t daphne-fullstream
 Do not start the long build if one of these commands fails. Keep the complete
 error text; the first `ERROR:` line is usually the useful one.
 
-## 4. Build
+## Build
 
 ```bash
 BUILD_SHA=$(git rev-parse --short=7 HEAD)
@@ -66,13 +74,17 @@ time and use several gigabytes of memory. A successful run ends with:
 INFO: Finished design building.
 ```
 
-## 5. Check the result
+## Check the result
 
 Run the checker with the same shell variables:
 
 ```bash
-./scripts/fusesoc/check_build_outputs.sh "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
+./scripts/fusesoc/check_build_outputs.sh \
+  "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
 ```
+
+The Linux build packages the overlay and creates `SHA256SUMS` automatically.
+The checker verifies those checksums and the implementation gates.
 
 The final line must start with `RESULT: PASS`. The important files are:
 
@@ -80,8 +92,16 @@ The final line must start with `RESULT: PASS`. The important files are:
 xilinx/output-<sha>/daphne_fullstream_<sha>.bit
 xilinx/output-<sha>/daphne_fullstream_<sha>.xsa
 xilinx/output-<sha>/daphne_fullstream_ol_<sha>.zip
+xilinx/output-<sha>/SHA256SUMS
 xilinx/output-<sha>/post_route_timing_summary.rpt
+xilinx/output-<sha>/post_route_bus_skew.rpt
+xilinx/output-<sha>/post_route_cdc.rpt
+xilinx/output-<sha>/post_route_methodology.rpt
+xilinx/output-<sha>/post_route_status.rpt
 xilinx/output-<sha>/post_route_power.rpt
+xilinx/output-<sha>/post_route_util.rpt
+xilinx/output-<sha>/post_imp_drc.rpt
+xilinx/output-<sha>/release_cells.rpt
 ```
 
 The `.bit` file is for FPGA programming. The overlay `.zip` contains the `.bin`,
@@ -90,7 +110,7 @@ The `.bit` file is for FPGA programming. The overlay `.zip` contains the `.bin`,
 ## Easy recovery notes
 
 - SSH failed: renew the FNAL ticket on the workstation with
-  `kinit arroyave@FNAL.GOV`.
+  `kinit "$FNAL_USER@FNAL.GOV"`.
 - The terminal closed: reconnect to Cooper and run
   `tmux attach -t daphne-fullstream`.
 - The preflight failed: stop there. Save its full output before changing files.

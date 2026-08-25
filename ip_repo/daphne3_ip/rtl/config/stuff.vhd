@@ -12,8 +12,11 @@
 --   +0x14  analog mux address, bits 1:0, read/write
 --   +0x18  status LEDs, bits 5:0, read/write
 --   +0x1C  firmware version nibble, bits 3:0, read-only
---   +0x20  channel enables 31:0, read/write
---   +0x24  channel enables 39:32, read/write
+--   +0x20  legacy channel enables 31:0, read/write
+--   +0x24  legacy channel enables 39:32, read/write
+--
+-- The active full-stream datapath does not consume the legacy channel-enable
+-- output. The registers remain readable for interface compatibility.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -29,8 +32,8 @@ port(
     mux_en: out std_logic_vector(1 downto 0); -- analog mux enables
     mux_a: out std_logic_vector(1 downto 0); -- analog mux selects
     stat_led: out std_logic_vector(5 downto 0); -- general purpose LEDs
-    version: in std_logic_vector(3 downto 0); -- GIT version number
-    core_chan_enable: out std_logic_vector(39 downto 0); -- channel enables for self-trig core
+    version: in std_logic_vector(3 downto 0); -- low nibble of build commit
+    core_chan_enable: out std_logic_vector(39 downto 0); -- legacy compatibility output
   
     -- AXI-LITE interface
 
@@ -323,7 +326,7 @@ begin
       axi_araddr  <= (others => '1');
     else
       if (axi_arready = '0' and S_AXI_ARVALID = '1') then
-        -- indicates that the slave has acceped the valid read address
+        -- indicates that the slave has accepted the valid read address
         axi_arready <= '1';
         -- Read Address latching 
         axi_araddr  <= S_AXI_ARADDR;           
@@ -421,7 +424,7 @@ begin
       if (reg_rden = '1') then
         -- When there is a valid read address (S_AXI_ARVALID) with 
         -- acceptance of read address by the slave (axi_arready), 
-        -- output the read dada 
+        -- output the read data
         -- Read address mux
           axi_rdata <= reg_data_out; -- register read data
       end if;   

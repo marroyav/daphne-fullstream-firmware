@@ -20,7 +20,7 @@ generic(
 
     N_SRC: positive  := 2;   -- each mux has 2 inputs
     N_MGT: positive  := 4;    -- four transceivers
-    version: std_logic_vector(3 downto 0) := X"1" ;  -- firmware firsion
+    version: std_logic_vector(3 downto 0) := X"1" ;  -- low nibble of build commit
     link_id: std_logic_vector(5 downto 0) := "000000";
     slot_id: std_logic_vector(3 downto 0) := X"2";
     crate_id: std_logic_vector(9 downto 0) := "0000000011";

@@ -437,7 +437,7 @@ set daphne_ports [ipx::add_ports_from_hdl -top_level_hdl_file [file normalize ".
 set daphne_generics [ipx::add_model_parameters_from_hdl -top_level_hdl_file [file normalize "../ip_repo/daphne3_ip/rtl/daphne3.vhd"] -top_module_name DAPHNE3 -include_dirs [file normalize "../ip_repo/daphne3_ip/rtl"] $daphne]
 set_property DISPLAY_NAME {N Src} [ipx::get_hdl_parameters -of_objects $daphne N_SRC]
 set_property VALUE_RESOLVE_TYPE user [ipx::get_hdl_parameters -of_objects $daphne N_SRC]
-set_property DISPLAY_NAME {N Src} [ipx::get_hdl_parameters -of_objects $daphne N_MGT]
+set_property DISPLAY_NAME {N MGT} [ipx::get_hdl_parameters -of_objects $daphne N_MGT]
 set_property VALUE_RESOLVE_TYPE user [ipx::get_hdl_parameters -of_objects $daphne N_MGT]
 set_property DISPLAY_NAME Version [ipx::get_hdl_parameters -of_objects $daphne version]
 set_property VALUE_RESOLVE_TYPE user [ipx::get_hdl_parameters -of_objects $daphne version]

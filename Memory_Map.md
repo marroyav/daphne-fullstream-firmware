@@ -1,8 +1,8 @@
-# Memory Map
+# Memory map
 
 List of all the register addresses present in DAPHNE3/MEZZ's firmware.
 
-## SPI Master Control for AFE chips AXI-4 Lite Slave Interface: `AFE_SPI_S_AXI`
+## SPI master control for AFE chips, AXI4-Lite slave interface: `AFE_SPI_S_AXI`
 **Base Address:** `0x8000_0000`
 **Memory Bank Size:** `64M`
 
@@ -30,7 +30,7 @@ List of all the register addresses present in DAPHNE3/MEZZ's firmware.
 |  0x38   | 0x80000038 |       trim_we(4)        |  32b  |  W/O   |     -      |    AFE4 Trim DAC data register     |                                -                                |
 |  0x3C   | 0x8000003C |      offset_we(4)       |  32b  |  W/O   |     -      |   AFE4 Offset DAC data register    |                                -                                |
 
-## Timing Endpoint Control AXI-4 Lite Slave Interface: `END_P_S_AXI`
+## Timing endpoint control, AXI4-Lite slave interface: `END_P_S_AXI`
 **Base Address:** `0x8400_0000`
 **Memory Bank Size:** `64M`
 
@@ -41,7 +41,7 @@ List of all the register addresses present in DAPHNE3/MEZZ's firmware.
 |  0x08   | 0x84000008 |      ep_ctrl_reg       |  32b  |  R/W   | 0x00000000 |     Endpoint control register     | (31:17) Don't care. (16) Endpoint reset. (15:0) Endpoint address |
 |  0x0C   | 0x8400000C |       ep_status        |  32b  |  R/O   | 0x00000000 |  Endpoint module status register  | (31:5) Zero. (4) Endpoint timestamp OK. (3:0) Endpoint state machine status |
 
-## Front End Control AXI-4 Lite Slave Interface: `FRONT_END_S_AXI`
+## Front-end control, AXI4-Lite slave interface: `FRONT_END_S_AXI`
 **Base Address:** `0x8800_0000`
 **Memory Bank Size:** `64M`
 
@@ -61,7 +61,7 @@ List of all the register addresses present in DAPHNE3/MEZZ's firmware.
 |  0x2C   | 0x8800002C | iserdes_bitslip_reg(3) |  4b   |  R/W   |    0x0     |       AFE3 Bitslip register       |   Execute a defined amount of bitslip operations (0x0 - 0xF)    |
 |  0x30   | 0x88000030 | iserdes_bitslip_reg(4) |  4b   |  R/W   |    0x0     |       AFE4 Bitslip register       |   Execute a defined amount of bitslip operations (0x0 - 0xF)    |
 
-## SPI Master Control for DAC chips AXI-4 Lite Slave Interface: `SPI_DAC_S_AXI`
+## SPI master control for DAC chips, AXI4-Lite slave interface: `SPI_DAC_S_AXI`
 **Base Address:** `0x8C00_0000`
 **Memory Bank Size:** `64M`
 
@@ -72,13 +72,13 @@ List of all the register addresses present in DAPHNE3/MEZZ's firmware.
 |  0x08   | 0x8C000008 |        dac1_reg        |  16b  |  R/W   |   0x0000   | Data for first DAC chip U53 register |                           TX - Data                            |
 |  0x0C   | 0x8C00000C |        dac2_reg        |  16b  |  R/W   |   0x0000   | Data for first DAC chip U5 register  |                           TX - Data                            |
 
-## Spy Buffers Control AXI-4 Lite Slave Interface: `SPY_BUF_S_S_AXI`
+## Spy-buffer control, AXI4-Lite slave interface: `SPY_BUF_S_S_AXI`
 **Base Address:** `0x9000_0000`
 **Memory Bank Size:** `64M`
 
 This module is special, as here are noted only the first element of each address. Since each spy buffer stores about 1024 samples of data, the very first address contains the first two samples (sample 1 and sample 0) stored in the spy buffer in this configuration: `sample1 (15:0) & sample0 (15:0)`. The following address, which should be the `BASE + 0x00004` also returns data from the AFE0 Channel 0, but this time, it contains the following two samples (sample 3 and sample 2) using the same configuration. This pattern goes on until the last two samples, `sample1023 (15:0) & sample1022(15:0)` are seen when reading `BASE + 0x00FFC` or `OFFSET + 4092`. In this last case, the next address will change to the following channel, and then after reaching 8 channels, we change the AFE, and so on. For each AFE, channel 8 is the frame marker pattern. The timestamp is also stored in a window of 1024 samples, however, since it is a 64 bit word, it is split into 4 fragments of 16 bits each. When you access the first element e.g. `BASE + 0x2D000` you will read the LSB of the timestamp `timestamp (15:0)`. In the next address space, `BASE + 0x2E000` or `OFFSET + 188416` you will read the following 16 bits `timestamp (31:16)` and so on.
 
-### Spy Buffer For The AFE0
+### Spy buffer for AFE0
 
 | Offset  |  Address   |     Register     | Size  | Access |  Default   |                   Description                   |        Additional Information         |
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
@@ -92,7 +92,7 @@ This module is special, as here are noted only the first element of each address
 | 0x07000 | 0x90007000 |    din(0)(7)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE0 - Channel 7, Samples (1:0)  |   0x07000 - 0x07FFC AFE0 Channel 7    |
 | 0x08000 | 0x90008000 |    din(0)(8)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE0 - Channel 8, Samples (1:0)  |  0x08000 - 0x08FFC AFE0 Frame Clock   |
 
-### Spy Buffer For The AFE1
+### Spy buffer for AFE1
 
 | Offset  |  Address   |     Register     | Size  | Access |  Default   |                   Description                   |        Additional Information         |
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
@@ -106,7 +106,7 @@ This module is special, as here are noted only the first element of each address
 | 0x10000 | 0x90010000 |    din(1)(7)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE1 - Channel 7, Samples (1:0)  |   0x10000 - 0x10FFC AFE1 Channel 7    |
 | 0x11000 | 0x90011000 |    din(1)(8)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE1 - Channel 8, Samples (1:0)  |  0x11000 - 0x11FFC AFE1 Frame Clock   |
 
-### Spy Buffer For The AFE2
+### Spy buffer for AFE2
 
 | Offset  |  Address   |     Register     | Size  | Access |  Default   |                   Description                   |        Additional Information         |
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
@@ -120,7 +120,7 @@ This module is special, as here are noted only the first element of each address
 | 0x19000 | 0x90019000 |    din(2)(7)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE2 - Channel 7, Samples (1:0)  |   0x19000 - 0x19FFC AFE2 Channel 7    |
 | 0x1A000 | 0x9001A000 |    din(2)(8)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE2 - Channel 8, Samples (1:0)  |  0x1A000 - 0x1AFFC AFE2 Frame Clock   |
 
-### Spy Buffer For The AFE3
+### Spy buffer for AFE3
 
 | Offset  |  Address   |     Register     | Size  | Access |  Default   |                   Description                   |        Additional Information         |
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
@@ -134,7 +134,7 @@ This module is special, as here are noted only the first element of each address
 | 0x22000 | 0x90022000 |    din(3)(7)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE3 - Channel 7, Samples (1:0)  |   0x22000 - 0x22FFC AFE3 Channel 7    |
 | 0x23000 | 0x90023000 |    din(3)(8)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE3 - Channel 8, Samples (1:0)  |  0x23000 - 0x23FFC AFE3 Frame Clock   |
 
-### Spy Buffer For The AFE4
+### Spy buffer for AFE4
 
 | Offset  |  Address   |     Register     | Size  | Access |  Default   |                   Description                   |        Additional Information         |
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
@@ -148,7 +148,7 @@ This module is special, as here are noted only the first element of each address
 | 0x2B000 | 0x9002B000 |    din(4)(7)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE4 - Channel 7, Samples (1:0)  |   0x2B000 - 0x2BFFC AFE4 Channel 7    |
 | 0x2C000 | 0x9002C000 |    din(4)(8)     |  32b  |  R/O   | 0x00000000 | Spy buffer for AFE4 - Channel 8, Samples (1:0)  |  0x2C000 - 0x2CFFC AFE4 Frame Clock   |
 
-### Spy Buffer For The Timestamp
+### Spy buffer for the timestamp
 
 | Offset  |  Address   |     Register     | Size  | Access |  Default   |                   Description                   |        Additional Information         |
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
@@ -157,11 +157,12 @@ This module is special, as here are noted only the first element of each address
 | 0x2F000 | 0x9002F000 | timestamp(47:32) |  32b  |  R/O   | 0x00000000 |     Spy buffer for Timestamp, Samples (1:0)     |  0x2F000 - 0x2FFFC Timestamp (47:32)  |
 | 0x30000 | 0x90030000 | timestamp(63:48) |  32b  |  R/O   | 0x00000000 |     Spy buffer for Timestamp, Samples (1:0)     |  0x30000 - 0x30FFC Timestamp (63:48)  |
 
-## Miscellaneous Stuff AXI-4 Lite Slave Interface: `STUFF_S_AXI`
+## Board control, AXI4-Lite slave interface: `STUFF_S_AXI`
 **Base Address:** `0x9400_0000`
 **Memory Bank Size:** `64M`
 
-**IMPORTANT NOTE:** The module currently does not support the read of the registers written here!
+All implemented registers in this block support deterministic readback. Reserved
+bits and unknown addresses read as zero.
 
 | Offset  |  Address   |     Register     | Size  | Access |  Default   |                   Description                   |        Additional Information         |
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
@@ -172,11 +173,11 @@ This module is special, as here are noted only the first element of each address
 |  0x10   | 0x94000010 |   mux_en_reg     |  2b   |  R/W   |    0x0     |        Analog mux enable lines register         |           Values 0x1 or 0x2           |
 |  0x14   | 0x94000014 |    mux_a_reg     |  2b   |  R/W   |    0x0     |        Analog mux address lines register        |           Values 0x0 or 0x1           |
 |  0x18   | 0x94000018 |   stat_led_reg   |  6b   |  R/W   |    0x0     |              Status LEDs register               |         Currently Unconnected         |
-|  0x1C   | 0x9400001C |     version      |  28b  |  R/O   |     -      |       GIT commit version number register        |                   -                   |
-|  0x20   | 0x94000020 | core_enable_reg  |  32b  |  R/W   | 0x00000000 | Self triggered mode channel enable LSB register | Channel 31 to channel 0 (31 downto 0) |
-|  0x24   | 0x94000024 | core_enable_reg  |  8b   |  R/W   |    0x00    | Self triggered mode channel enable MSB register | Channel 39 to channel 32 (7 downto 0) |
+|  0x1C   | 0x9400001C |     version      |  4b   |  R/O   |     -      | Low nibble of the build commit                   | Bits 31:4 read as zero                |
+|  0x20   | 0x94000020 | core_enable_reg  |  32b  |  R/W   | 0x00000000 | Legacy channel-enable low word                   | Readable, but not consumed by the active full-stream datapath |
+|  0x24   | 0x94000024 | core_enable_reg  |  8b   |  R/W   |    0x00    | Legacy channel-enable high byte                  | Readable, but not consumed by the active full-stream datapath |
 
-## Trigger Core Control AXI-4 Lite Slave Interface: `TRIRG_S_AXI`
+## Hermes/10G sender control, AXI4-Lite slave interface: `TRIRG_S_AXI`
 **Base Address:** `0x9800_0000`
 **Memory Bank Size:** `64M`
 
@@ -184,7 +185,7 @@ This module is special, as here are noted only the first element of each address
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
 |  0x00   | 0x98000000 |    10g_sender    |  32b  |  R/W   |     -      |            10G Hermes sender module             |                   -                   |
 
-## PL I2C AXI-4 Lite Slave Interface: `S_AXI`
+## PL I2C, AXI4-Lite slave interface: `S_AXI`
 **Base Address:** `0x9C00_0000`
 **Memory Bank Size:** `64K`
 
@@ -192,7 +193,7 @@ This module is special, as here are noted only the first element of each address
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
 |  0x00   | 0x9C000000 |     AXI IIC      |  32b  |  R/W   |     -      |                 AXI IIC module                  |          Check product guide          |
 
-## AXI Interrupt Controller AXI-4 Lite Slave Interface: `s_axi`
+## AXI interrupt controller, AXI4-Lite slave interface: `s_axi`
 **Base Address:** `0x9C01_0000`
 **Memory Bank Size:** `64K`
 
@@ -200,7 +201,7 @@ This module is special, as here are noted only the first element of each address
 |---------|------------|--------------------------|-------|--------|------------|----------------------------------------------|---------------------------------------|
 |  0x00   | 0x9C010000 | AXI Interrupt Controller |  32b  |  R/W   |     -      | AXI Interrupt Controller module for the ZYNQ |          Check product guide          |
 
-## AXI Quad CM SPI AXI-4 Lite Slave Interface: `AXI_LITE`
+## AXI Quad CM SPI, AXI4-Lite slave interface: `AXI_LITE`
 **Base Address:** `0x9C02_0000`
 **Memory Bank Size:** `64K`
 
@@ -208,7 +209,7 @@ This module is special, as here are noted only the first element of each address
 |---------|------------|------------------|-------|--------|------------|-------------------------------------------------|---------------------------------------|
 |  0x00   | 0x9C020000 |   AXI Quad SPI   |  32b  |  R/W   |     -      |               AXI Quad SPI module               |          Check product guide          |
 
-## Output Spy Buffer AXI-4 Lite Slave Interface: `OUTBUFF_S_AXI`
+## Output spy buffer, AXI4-Lite slave interface: `OUTBUFF_S_AXI`
 **Base Address:** `0xA000_0000`
 **Memory Bank Size:** `64K`
 | Offset  |  Address   |  Register   | Size  | Access |  Default   |     Description      |                           Additional Information                           |
@@ -216,7 +217,7 @@ This module is special, as here are noted only the first element of each address
 |  0x00   | 0xA0000000 | status_word |  32b  |  R/W   | 0x20000000 |   Status register    | Write the output stream number (0-7) to ARM the module. (31:28) FSM Status. (27:3) All Zeros. (2:0) Number of output stream selected |
 |  0x04   | 0xA0000004 |  fifo_dout  |  32b  |  R/O   | 0x00000000 | FIFO output register | Data cycles between LOW 32 bits, then HIGH 32 bits, starting from LOW 32 bits. 1k 64-bit words are stored, read address 2048 times to read it all |
 
-## AXI-4 Lite Slave Interface: `MUX_S_AXI`
+## Stream input mux, AXI4-Lite slave interface: `MUX_S_AXI`
 **Base Address:** `0xA001_0000`
 **Memory Bank Size:** `64K`
 
@@ -247,35 +248,35 @@ And so on...
 
 | Offset |  Address   |     Register      | Size | Access |  Default   |     Description      |               Additional Information                |
 |--------|------------|-------------------|------|--------|------------|----------------------|-----------------------------------------------------|
-|  0x00  | 0xA0010000 | muxctrl_reg(0)(0) | 32b  |  R/W   | 0x00000000 | Mux Control register | Select asssociated input for the data output (0)(0) |
-|  0x04  | 0xA0010004 | muxctrl_reg(0)(1) | 32b  |  R/W   | 0x00000001 | Mux Control register | Select asssociated input for the data output (0)(1) |
-|  0x08  | 0xA0010008 | muxctrl_reg(0)(2) | 32b  |  R/W   | 0x00000002 | Mux Control register | Select asssociated input for the data output (0)(2) |
-|  0x0C  | 0xA001000C | muxctrl_reg(0)(3) | 32b  |  R/W   | 0x00000003 | Mux Control register | Select asssociated input for the data output (0)(3) |
-|  0x10  | 0xA0010010 | muxctrl_reg(1)(0) | 32b  |  R/W   | 0x00000004 | Mux Control register | Select asssociated input for the data output (1)(0) |
-|  0x14  | 0xA0010014 | muxctrl_reg(1)(1) | 32b  |  R/W   | 0x00000005 | Mux Control register | Select asssociated input for the data output (1)(1) |
-|  0x18  | 0xA0010018 | muxctrl_reg(1)(2) | 32b  |  R/W   | 0x00000006 | Mux Control register | Select asssociated input for the data output (1)(2) |
-|  0x1C  | 0xA001001C | muxctrl_reg(1)(3) | 32b  |  R/W   | 0x00000007 | Mux Control register | Select asssociated input for the data output (1)(3) |
-|  0x20  | 0xA0010020 | muxctrl_reg(2)(0) | 32b  |  R/W   | 0x00000008 | Mux Control register | Select asssociated input for the data output (2)(0) |
-|  0x24  | 0xA0010024 | muxctrl_reg(2)(1) | 32b  |  R/W   | 0x00000009 | Mux Control register | Select asssociated input for the data output (2)(1) |
-|  0x28  | 0xA0010028 | muxctrl_reg(2)(2) | 32b  |  R/W   | 0x0000000A | Mux Control register | Select asssociated input for the data output (2)(2) |
-|  0x2C  | 0xA001002C | muxctrl_reg(2)(3) | 32b  |  R/W   | 0x0000000B | Mux Control register | Select asssociated input for the data output (2)(3) |
-|  0x30  | 0xA0010030 | muxctrl_reg(3)(0) | 32b  |  R/W   | 0x0000000C | Mux Control register | Select asssociated input for the data output (3)(0) |
-|  0x34  | 0xA0010034 | muxctrl_reg(3)(1) | 32b  |  R/W   | 0x0000000D | Mux Control register | Select asssociated input for the data output (3)(1) |
-|  0x38  | 0xA0010038 | muxctrl_reg(3)(2) | 32b  |  R/W   | 0x0000000E | Mux Control register | Select asssociated input for the data output (3)(2) |
-|  0x3C  | 0xA001003C | muxctrl_reg(3)(3) | 32b  |  R/W   | 0x0000000F | Mux Control register | Select asssociated input for the data output (3)(3) |
-|  0x40  | 0xA0010040 | muxctrl_reg(4)(0) | 32b  |  R/W   | 0x00000010 | Mux Control register | Select asssociated input for the data output (4)(0) |
-|  0x44  | 0xA0010044 | muxctrl_reg(4)(1) | 32b  |  R/W   | 0x00000011 | Mux Control register | Select asssociated input for the data output (4)(1) |
-|  0x48  | 0xA0010048 | muxctrl_reg(4)(2) | 32b  |  R/W   | 0x00000012 | Mux Control register | Select asssociated input for the data output (4)(2) |
-|  0x4C  | 0xA001004C | muxctrl_reg(4)(3) | 32b  |  R/W   | 0x00000013 | Mux Control register | Select asssociated input for the data output (4)(3) |
-|  0x50  | 0xA0010050 | muxctrl_reg(5)(0) | 32b  |  R/W   | 0x00000014 | Mux Control register | Select asssociated input for the data output (5)(0) |
-|  0x54  | 0xA0010054 | muxctrl_reg(5)(1) | 32b  |  R/W   | 0x00000015 | Mux Control register | Select asssociated input for the data output (5)(1) |
-|  0x58  | 0xA0010058 | muxctrl_reg(5)(2) | 32b  |  R/W   | 0x00000016 | Mux Control register | Select asssociated input for the data output (5)(2) |
-|  0x5C  | 0xA001005C | muxctrl_reg(5)(3) | 32b  |  R/W   | 0x00000017 | Mux Control register | Select asssociated input for the data output (5)(3) |
-|  0x60  | 0xA0010060 | muxctrl_reg(6)(0) | 32b  |  R/W   | 0x00000018 | Mux Control register | Select asssociated input for the data output (6)(0) |
-|  0x64  | 0xA0010064 | muxctrl_reg(6)(1) | 32b  |  R/W   | 0x00000019 | Mux Control register | Select asssociated input for the data output (6)(1) |
-|  0x68  | 0xA0010068 | muxctrl_reg(6)(2) | 32b  |  R/W   | 0x0000001A | Mux Control register | Select asssociated input for the data output (6)(2) |
-|  0x6C  | 0xA001006C | muxctrl_reg(6)(3) | 32b  |  R/W   | 0x0000001B | Mux Control register | Select asssociated input for the data output (6)(3) |
-|  0x70  | 0xA0010070 | muxctrl_reg(7)(0) | 32b  |  R/W   | 0x0000001C | Mux Control register | Select asssociated input for the data output (7)(0) |
-|  0x74  | 0xA0010074 | muxctrl_reg(7)(1) | 32b  |  R/W   | 0x0000001D | Mux Control register | Select asssociated input for the data output (7)(1) |
-|  0x78  | 0xA0010078 | muxctrl_reg(7)(2) | 32b  |  R/W   | 0x0000001E | Mux Control register | Select asssociated input for the data output (7)(2) |
-|  0x7C  | 0xA001007C | muxctrl_reg(7)(3) | 32b  |  R/W   | 0x0000001F | Mux Control register | Select asssociated input for the data output (7)(3) |
+|  0x00  | 0xA0010000 | muxctrl_reg(0)(0) | 32b  |  R/W   | 0x00000000 | Mux Control register | Select associated input for the data output (0)(0) |
+|  0x04  | 0xA0010004 | muxctrl_reg(0)(1) | 32b  |  R/W   | 0x00000001 | Mux Control register | Select associated input for the data output (0)(1) |
+|  0x08  | 0xA0010008 | muxctrl_reg(0)(2) | 32b  |  R/W   | 0x00000002 | Mux Control register | Select associated input for the data output (0)(2) |
+|  0x0C  | 0xA001000C | muxctrl_reg(0)(3) | 32b  |  R/W   | 0x00000003 | Mux Control register | Select associated input for the data output (0)(3) |
+|  0x10  | 0xA0010010 | muxctrl_reg(1)(0) | 32b  |  R/W   | 0x00000004 | Mux Control register | Select associated input for the data output (1)(0) |
+|  0x14  | 0xA0010014 | muxctrl_reg(1)(1) | 32b  |  R/W   | 0x00000005 | Mux Control register | Select associated input for the data output (1)(1) |
+|  0x18  | 0xA0010018 | muxctrl_reg(1)(2) | 32b  |  R/W   | 0x00000006 | Mux Control register | Select associated input for the data output (1)(2) |
+|  0x1C  | 0xA001001C | muxctrl_reg(1)(3) | 32b  |  R/W   | 0x00000007 | Mux Control register | Select associated input for the data output (1)(3) |
+|  0x20  | 0xA0010020 | muxctrl_reg(2)(0) | 32b  |  R/W   | 0x00000008 | Mux Control register | Select associated input for the data output (2)(0) |
+|  0x24  | 0xA0010024 | muxctrl_reg(2)(1) | 32b  |  R/W   | 0x00000009 | Mux Control register | Select associated input for the data output (2)(1) |
+|  0x28  | 0xA0010028 | muxctrl_reg(2)(2) | 32b  |  R/W   | 0x0000000A | Mux Control register | Select associated input for the data output (2)(2) |
+|  0x2C  | 0xA001002C | muxctrl_reg(2)(3) | 32b  |  R/W   | 0x0000000B | Mux Control register | Select associated input for the data output (2)(3) |
+|  0x30  | 0xA0010030 | muxctrl_reg(3)(0) | 32b  |  R/W   | 0x0000000C | Mux Control register | Select associated input for the data output (3)(0) |
+|  0x34  | 0xA0010034 | muxctrl_reg(3)(1) | 32b  |  R/W   | 0x0000000D | Mux Control register | Select associated input for the data output (3)(1) |
+|  0x38  | 0xA0010038 | muxctrl_reg(3)(2) | 32b  |  R/W   | 0x0000000E | Mux Control register | Select associated input for the data output (3)(2) |
+|  0x3C  | 0xA001003C | muxctrl_reg(3)(3) | 32b  |  R/W   | 0x0000000F | Mux Control register | Select associated input for the data output (3)(3) |
+|  0x40  | 0xA0010040 | muxctrl_reg(4)(0) | 32b  |  R/W   | 0x00000010 | Mux Control register | Select associated input for the data output (4)(0) |
+|  0x44  | 0xA0010044 | muxctrl_reg(4)(1) | 32b  |  R/W   | 0x00000011 | Mux Control register | Select associated input for the data output (4)(1) |
+|  0x48  | 0xA0010048 | muxctrl_reg(4)(2) | 32b  |  R/W   | 0x00000012 | Mux Control register | Select associated input for the data output (4)(2) |
+|  0x4C  | 0xA001004C | muxctrl_reg(4)(3) | 32b  |  R/W   | 0x00000013 | Mux Control register | Select associated input for the data output (4)(3) |
+|  0x50  | 0xA0010050 | muxctrl_reg(5)(0) | 32b  |  R/W   | 0x00000014 | Mux Control register | Select associated input for the data output (5)(0) |
+|  0x54  | 0xA0010054 | muxctrl_reg(5)(1) | 32b  |  R/W   | 0x00000015 | Mux Control register | Select associated input for the data output (5)(1) |
+|  0x58  | 0xA0010058 | muxctrl_reg(5)(2) | 32b  |  R/W   | 0x00000016 | Mux Control register | Select associated input for the data output (5)(2) |
+|  0x5C  | 0xA001005C | muxctrl_reg(5)(3) | 32b  |  R/W   | 0x00000017 | Mux Control register | Select associated input for the data output (5)(3) |
+|  0x60  | 0xA0010060 | muxctrl_reg(6)(0) | 32b  |  R/W   | 0x00000018 | Mux Control register | Select associated input for the data output (6)(0) |
+|  0x64  | 0xA0010064 | muxctrl_reg(6)(1) | 32b  |  R/W   | 0x00000019 | Mux Control register | Select associated input for the data output (6)(1) |
+|  0x68  | 0xA0010068 | muxctrl_reg(6)(2) | 32b  |  R/W   | 0x0000001A | Mux Control register | Select associated input for the data output (6)(2) |
+|  0x6C  | 0xA001006C | muxctrl_reg(6)(3) | 32b  |  R/W   | 0x0000001B | Mux Control register | Select associated input for the data output (6)(3) |
+|  0x70  | 0xA0010070 | muxctrl_reg(7)(0) | 32b  |  R/W   | 0x0000001C | Mux Control register | Select associated input for the data output (7)(0) |
+|  0x74  | 0xA0010074 | muxctrl_reg(7)(1) | 32b  |  R/W   | 0x0000001D | Mux Control register | Select associated input for the data output (7)(1) |
+|  0x78  | 0xA0010078 | muxctrl_reg(7)(2) | 32b  |  R/W   | 0x0000001E | Mux Control register | Select associated input for the data output (7)(2) |
+|  0x7C  | 0xA001007C | muxctrl_reg(7)(3) | 32b  |  R/W   | 0x0000001F | Mux Control register | Select associated input for the data output (7)(3) |

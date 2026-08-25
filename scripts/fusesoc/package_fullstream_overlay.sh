@@ -72,6 +72,15 @@ if ! command -v zip >/dev/null 2>&1; then
   exit 2
 fi
 
+if command -v sha256sum >/dev/null 2>&1; then
+  SHA256_TOOL=sha256sum
+elif command -v shasum >/dev/null 2>&1; then
+  SHA256_TOOL=shasum
+else
+  echo "ERROR: sha256sum or shasum is required to checksum the overlay." >&2
+  exit 2
+fi
+
 SDT_STAGE=$(mktemp -d "$OUTPUT_DIR/.${BUILD_NAME}.sdt.XXXXXX")
 PACKAGE_STAGE=$(mktemp -d "$OUTPUT_DIR/.${OVERLAY_NAME}.package.XXXXXX")
 ZIP_STAGE="$PACKAGE_STAGE/$OVERLAY_NAME.zip"
@@ -180,4 +189,39 @@ ZIP_STAGE=""
 rmdir "$PACKAGE_STAGE"
 PACKAGE_STAGE=""
 
+(
+  CDPATH= cd -- "$OUTPUT_DIR"
+  set --
+  for checksum_path in \
+    "$BUILD_NAME.bit" \
+    "$BUILD_NAME.bin" \
+    "$BUILD_NAME.xsa" \
+    probes.ltx \
+    "$OVERLAY_NAME.zip" \
+    "$OVERLAY_NAME/$OVERLAY_NAME.bin" \
+    "$OVERLAY_NAME/$OVERLAY_NAME.dtbo" \
+    "$OVERLAY_NAME/shell.json" \
+    post_route_timing_summary.rpt \
+    post_route_bus_skew.rpt \
+    post_route_cdc.rpt \
+    post_route_methodology.rpt \
+    post_route_status.rpt \
+    post_route_power.rpt \
+    post_route_util.rpt \
+    post_imp_drc.rpt \
+    release_cells.rpt
+  do
+    if [ -s "$checksum_path" ]; then
+      set -- "$@" "$checksum_path"
+    fi
+  done
+
+  if [ "$SHA256_TOOL" = sha256sum ]; then
+    sha256sum "$@" > SHA256SUMS
+  else
+    shasum -a 256 "$@" > SHA256SUMS
+  fi
+)
+
 echo "INFO: Device-tree overlay package is ready: $OVERLAY_ZIP"
+echo "INFO: Checksums are ready: $OUTPUT_DIR/SHA256SUMS"

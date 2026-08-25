@@ -22,7 +22,7 @@ proc daphne_fullstream_resolve_config {script_dir} {
     array set cfg {}
 
     set cfg(script_dir) $script_dir
-    set cfg(vivado_version) 2024.1
+    set cfg(vivado_version) 2026.1
     set cfg(max_threads) [daphne_fullstream_get_env DAPHNE_MAX_THREADS 4]
     set cfg(output_dir) [daphne_fullstream_get_env DAPHNE_OUTPUT_DIR ./output]
     set cfg(fpga_part) [daphne_fullstream_get_env DAPHNE_FPGA_PART xck26-sfvc784-2LV-c]
@@ -118,6 +118,26 @@ proc daphne_fullstream_run_synth {cfg_name} {
     }
 }
 
+proc daphne_fullstream_write_release_cell_audit {cfg_name} {
+    upvar 1 $cfg_name cfg
+
+    set audit [open [file join $cfg(output_dir) release_cells.rpt] w]
+
+    set sync_cells [get_cells -hier -filter {NAME =~ *front_end_inst* && ASYNC_REG == TRUE}]
+    puts $audit "FRONTEND_ASYNC_REG_COUNT=[llength $sync_cells]"
+    foreach cell $sync_cells {
+        puts $audit "FRONTEND_ASYNC_REG=$cell LOC=[get_property LOC $cell]"
+    }
+
+    set gt_cells [get_cells -hier -filter {REF_NAME == GTHE4_CHANNEL}]
+    puts $audit "GT_CHANNEL_COUNT=[llength $gt_cells]"
+    foreach cell $gt_cells {
+        puts $audit "GT_CHANNEL=$cell LOC=[get_property LOC $cell]"
+    }
+
+    close $audit
+}
+
 proc daphne_fullstream_run_impl {cfg_name} {
     upvar 1 $cfg_name cfg
 
@@ -137,7 +157,12 @@ proc daphne_fullstream_run_impl {cfg_name} {
     report_utilization -file [file join $cfg(output_dir) post_route_util.rpt]
     report_power -file [file join $cfg(output_dir) post_route_power.rpt]
     report_drc -file [file join $cfg(output_dir) post_imp_drc.rpt]
+    report_bus_skew -file [file join $cfg(output_dir) post_route_bus_skew.rpt]
+    report_cdc -details -file [file join $cfg(output_dir) post_route_cdc.rpt]
+    report_methodology -file [file join $cfg(output_dir) post_route_methodology.rpt]
+    report_route_status -file [file join $cfg(output_dir) post_route_status.rpt]
     report_io -file [file join $cfg(output_dir) io.rpt]
+    daphne_fullstream_write_release_cell_audit cfg
     write_checkpoint -force [file join $cfg(output_dir) "${cfg(build_name)}_post_impl.dcp"]
 }
 

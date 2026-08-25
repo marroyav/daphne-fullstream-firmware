@@ -3,11 +3,18 @@
 This candidate is for one K26C DAPHNE board at a time. It builds the
 full-stream firmware and enables the four streaming links in the design.
 
-It is a test candidate, not a production image.
+It is a source candidate, not a released or production-qualified image.
+
+Current status:
+
+- vendor-neutral smoke and formal checks pass;
+- the exact Cooper implementation and packaging run has **not run**;
+- no firmware ZIP, checksum manifest, release tag, or GitHub release exists for
+  this candidate yet.
 
 ## Before you use it
 
-Check the downloaded files:
+After Cooper produces the release package, check the downloaded files:
 
 ```bash
 sha256sum -c SHA256SUMS
@@ -15,13 +22,14 @@ sha256sum -c SHA256SUMS
 
 Every line must end in `OK`. Stop if a checksum fails.
 
-The FPGA artifact was built with Vivado 2026.1 on Cooper. Keep the bitstream,
-XSA, overlay ZIP, reports, and `SHA256SUMS` together. Do not mix files from
-another release.
+This command is intentionally blocked until the Cooper build creates
+`SHA256SUMS`. When it exists, keep the bitstream, XSA, overlay ZIP, reports,
+and checksum manifest together. Do not mix files from another build.
 
 ## Build it again
 
-On Cooper, from a clean checkout of this tag:
+On Cooper, from a clean checkout of the approved commit (and, only after the
+build passes, its release tag):
 
 ```bash
 source /tools/2026.1/Vitis/settings64.sh
@@ -32,22 +40,29 @@ export DAPHNE_MAX_THREADS=8
 export DAPHNE_OUTPUT_DIR="$PWD/xilinx/output-$BUILD_SHA"
 
 ./scripts/fusesoc/refresh_cores.sh
+git diff --exit-code -- cores/generated/daphne-fullstream-ip.core
+python3 scripts/check_documentation.py
+python3 scripts/check_register_map.py
 ./scripts/fusesoc/preflight_vivado_build.sh
 ./scripts/fusesoc/build_platform.sh
-./scripts/fusesoc/package_fullstream_overlay.sh "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
 ./scripts/fusesoc/check_build_outputs.sh "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
 ```
 
-Good result: the final checker line starts with `RESULT: PASS`.
+The Linux build packages the overlay and writes `SHA256SUMS`. Good result: the
+final checker line starts with `RESULT: PASS`.
 
 ## What has been checked
 
 - the fan monitor and all implemented board-control register write/readback
   paths pass GHDL smoke tests
 - all seven checked-in formal jobs pass
-- the source manifest and build preflight pass
-- synthesis, implementation, timing, DRC, power reporting, and overlay
-  packaging are checked by the Cooper release build
+- the regenerated source manifest matches the checked-in manifest
+- the Vivado build preflight remains part of the `NOT RUN` Cooper gate
+- the scripts are prepared to check synthesis, implementation, timing, DRC,
+  power reporting, and overlay packaging on Cooper
+
+The Cooper implementation/package checks are currently `NOT RUN`. They are a
+release gate, not a completed result.
 
 Formal verification covers the modular boundaries and extracted selector. It
 does not prove the complete imported full-stream datapath.

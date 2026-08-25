@@ -1225,7 +1225,7 @@ if {[catch {set DAPHNE3_0 [create_bd_cell -vlnv $daphneVlnv -type IP $block_cell
     puts "ERROR: Block <$block_cell_name> could not be found after creation attempt. Check if the IP is available."
     return 1
 }
-# pass the git commit number as the version value for the configuration of the IP block
+# Pass the low nibble of the build commit to the IP block.
 set_property CONFIG.version $bd_git_sha $DAPHNE3_0
 
 # create instance: smartconnect_0, and set its properties

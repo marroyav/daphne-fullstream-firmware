@@ -23,6 +23,8 @@ From an initialized Vivado/Vitis 2026.1 shell, the core commands are:
 
 ```bash
 ./scripts/fusesoc/refresh_cores.sh
+python3 scripts/check_documentation.py
+python3 scripts/check_register_map.py
 ./scripts/fusesoc/build_platform.sh --dry-run
 ./scripts/fusesoc/preflight_vivado_build.sh
 
@@ -30,9 +32,12 @@ BUILD_SHA=$(git rev-parse --short=7 HEAD)
 export DAPHNE_GIT_SHA="$BUILD_SHA"
 export DAPHNE_OUTPUT_DIR="$PWD/xilinx/output-$BUILD_SHA"
 ./scripts/fusesoc/build_platform.sh
-./scripts/fusesoc/package_fullstream_overlay.sh "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
 ./scripts/fusesoc/check_build_outputs.sh "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
 ```
+
+The Linux build packages the overlay automatically. Run
+`package_fullstream_overlay.sh` separately only to recover from a packaging
+failure after Vivado has already produced the hardware files.
 
 Do not deploy unless the checker ends with `RESULT: PASS` and the release
 notes list the intended board and test status.
@@ -46,8 +51,16 @@ daphne_fullstream_<sha>.bit
 daphne_fullstream_<sha>.bin
 daphne_fullstream_<sha>.xsa
 daphne_fullstream_ol_<sha>.zip
+SHA256SUMS
 post_route_timing_summary.rpt
+post_route_bus_skew.rpt
+post_route_cdc.rpt
+post_route_methodology.rpt
+post_route_status.rpt
 post_route_power.rpt
+post_route_util.rpt
+post_imp_drc.rpt
+release_cells.rpt
 ```
 
 The `.bit` file programs the FPGA directly. The overlay ZIP contains the

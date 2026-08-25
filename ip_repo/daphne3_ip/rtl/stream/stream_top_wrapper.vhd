@@ -1,5 +1,8 @@
 -- stream_top_wrapper.vhd
--- eight stream4 modules + wib sender
+--
+-- Legacy reference wrapper. The active IP packaging flow excludes this file
+-- in xilinx/daphne_fullstream_ip_gen.tcl. It is retained for provenance and is
+-- not a supported top-level implementation.
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -208,7 +211,7 @@ type stream_din_mgt_type is array(N_MGT-1 downto 0) of array_4x14_type;
 type stream_din_mgt_mux_type is array(N_SRC-1 downto 0) of stream_din_mgt_type;
 
 signal stream_din: stream_din_mgt_mux_type;
-signal d: array_of_src_d_arrays(N_MGT-1 downto 0)(N_SRC-1 downto 0); -- not sure where adam defines this
+signal d: array_of_src_d_arrays(N_MGT-1 downto 0)(N_SRC-1 downto 0); -- type declared in tx_mux_decl
 
 
 signal       ext_mac_addr_0  :  std_logic_vector(47 downto 0);
@@ -306,7 +309,7 @@ stream_din(3)(1)(1) <= din13;
 stream_din(3)(1)(2) <= din14;
 stream_din(3)(1)(3) <= din15;
 
--- eight streaming senders
+-- One streaming sender per MGT/source pair.
 
 genMGT: for mgt in N_MGT-1 downto 0 generate
 genMUX: for mux in N_SRC-1 downto 0 generate
@@ -318,7 +321,8 @@ genMUX: for mux in N_SRC-1 downto 0 generate
             areset => reset,
             ts     => ts,
             din    => stream_din(mgt)(mux),
-            --dout   => d(mgt)(mux).data, -- just guesssing here???
+            -- Legacy wrapper: payload output is intentionally unassociated.
+            -- Verify the mapping before reactivating this path.
             valid  => d(mgt)(mux).valid, 
             last   => d(mgt)(mux).last
         );
@@ -394,7 +398,7 @@ wib_eth_readout_inst: component daphne_streaming_top
         --nuke => open,
         --soft_rst => open,
 
-        ext_mac_addr_0 =>   ext_mac_addr_0, -- not sure where this is defined
+        ext_mac_addr_0 =>   ext_mac_addr_0, -- legacy signal; no driver in this architecture
         ext_ip_addr_0  =>     ext_ip_addr_0,
         ext_port_addr_0 =>  ext_port_addr_0   ,
         
