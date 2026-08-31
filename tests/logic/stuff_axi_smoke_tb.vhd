@@ -38,6 +38,7 @@ architecture tb of stuff_axi_smoke_tb is
     signal mux_a            : std_logic_vector(1 downto 0);
     signal stat_led         : std_logic_vector(5 downto 0);
     signal version          : std_logic_vector(3 downto 0) := x"A";
+    signal build_id         : std_logic_vector(31 downto 0) := x"A1234567";
     signal core_chan_enable : std_logic_vector(39 downto 0);
 
     procedure axi_write(
@@ -127,6 +128,7 @@ begin
             mux_a => mux_a,
             stat_led => stat_led,
             version => version,
+            build_id => build_id,
             core_chan_enable => core_chan_enable,
             S_AXI_ACLK => clk,
             S_AXI_ARESETN => aresetn,
@@ -173,6 +175,32 @@ begin
                     araddr, arvalid, rdata, rvalid, clk);
         expect_read(x"0000001C", x"0000000A", "Version readback failed",
                     araddr, arvalid, rdata, rvalid, clk);
+        expect_read(x"000000F0", x"44415048", "Identity magic readback failed",
+                    araddr, arvalid, rdata, rvalid, clk);
+        expect_read(x"000000F4", x"00020000", "ABI version readback failed",
+                    araddr, arvalid, rdata, rvalid, clk);
+        expect_read(x"000000F8", x"00000002", "Variant ID readback failed",
+                    araddr, arvalid, rdata, rvalid, clk);
+        expect_read(x"000000FC", x"01234567", "Build ID readback failed",
+                    araddr, arvalid, rdata, rvalid, clk);
+
+        -- Identity words are immutable even though writes receive an OKAY response.
+        axi_write(x"000000F0", x"00000000", "1111",
+                  awaddr, awvalid, wdata, wstrb, wvalid, bvalid, clk);
+        axi_write(x"000000F4", x"FFFFFFFF", "1111",
+                  awaddr, awvalid, wdata, wstrb, wvalid, bvalid, clk);
+        axi_write(x"000000F8", x"FFFFFFFF", "1111",
+                  awaddr, awvalid, wdata, wstrb, wvalid, bvalid, clk);
+        axi_write(x"000000FC", x"FFFFFFFF", "1111",
+                  awaddr, awvalid, wdata, wstrb, wvalid, bvalid, clk);
+        expect_read(x"000000F0", x"44415048", "Identity magic was writable",
+                    araddr, arvalid, rdata, rvalid, clk);
+        expect_read(x"000000F4", x"00020000", "ABI version was writable",
+                    araddr, arvalid, rdata, rvalid, clk);
+        expect_read(x"000000F8", x"00000002", "Variant ID was writable",
+                    araddr, arvalid, rdata, rvalid, clk);
+        expect_read(x"000000FC", x"01234567", "Build ID was writable",
+                    araddr, arvalid, rdata, rvalid, clk);
 
         axi_write(x"00000000", x"00000055", "1111",
                   awaddr, awvalid, wdata, wstrb, wvalid, bvalid, clk);
@@ -218,6 +246,14 @@ begin
         expect_read(x"00000000", x"00000055", "Partial write changed fan demand",
                     araddr, arvalid, rdata, rvalid, clk);
         expect_read(x"00000028", x"00000000", "Unknown address did not read zero",
+                    araddr, arvalid, rdata, rvalid, clk);
+        axi_write(x"00000040", x"00000000", "1111",
+                  awaddr, awvalid, wdata, wstrb, wvalid, bvalid, clk);
+        expect_read(x"00000000", x"00000055", "Offset 0x40 write aliased offset 0x00",
+                    araddr, arvalid, rdata, rvalid, clk);
+        expect_read(x"00000040", x"00000000", "Offset 0x40 aliased offset 0x00",
+                    araddr, arvalid, rdata, rvalid, clk);
+        expect_read(x"00000080", x"00000000", "High offset aliased a low register",
                     araddr, arvalid, rdata, rvalid, clk);
 
         assert bresp = "00" report "AXI write response was not OKAY" severity failure;

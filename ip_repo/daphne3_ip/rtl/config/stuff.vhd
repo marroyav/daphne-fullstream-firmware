@@ -14,6 +14,10 @@
 --   +0x1C  firmware version nibble, bits 3:0, read-only
 --   +0x20  legacy channel enables 31:0, read/write
 --   +0x24  legacy channel enables 39:32, read/write
+--   +0xF0  identity magic ("DAPH"), read-only
+--   +0xF4  platform ABI version 2.0, read-only
+--   +0xF8  gateware variant ID (2 = full-stream), read-only
+--   +0xFC  zero-extended 28-bit build commit, read-only
 --
 -- The active full-stream datapath does not consume the legacy channel-enable
 -- output. The registers remain readable for interface compatibility.
@@ -33,6 +37,7 @@ port(
     mux_a: out std_logic_vector(1 downto 0); -- analog mux selects
     stat_led: out std_logic_vector(5 downto 0); -- general purpose LEDs
     version: in std_logic_vector(3 downto 0); -- low nibble of build commit
+    build_id: in std_logic_vector(31 downto 0); -- zero-extended build commit
     core_chan_enable: out std_logic_vector(39 downto 0); -- legacy compatibility output
   
     -- AXI-LITE interface
@@ -90,16 +95,24 @@ architecture stuff_arch of stuff is
 
     -- register offsets are relative to the base address specified for this AXI-LITE slave instance
 
-    constant FANCTRL_OFFSET:    std_logic_vector(5 downto 0) := "000000"; -- base+0
-    constant FAN0SPD_OFFSET:    std_logic_vector(5 downto 0) := "000100"; -- base+4
-    constant FAN1SPD_OFFSET:    std_logic_vector(5 downto 0) := "001000"; -- base+8
-    constant HVBIAS_OFFSET:     std_logic_vector(5 downto 0) := "001100"; -- base+12
-    constant MUXEN_OFFSET:      std_logic_vector(5 downto 0) := "010000"; -- base+16
-    constant MUXA_OFFSET:       std_logic_vector(5 downto 0) := "010100"; -- base+20
-    constant LED_OFFSET:        std_logic_vector(5 downto 0) := "011000"; -- base+24
-    constant VER_OFFSET:        std_logic_vector(5 downto 0) := "011100"; -- base+28
-    constant CORE_EN_LO_OFFSET: std_logic_vector(5 downto 0) := "100000"; -- base+32
-    constant CORE_EN_HI_OFFSET: std_logic_vector(5 downto 0) := "100100"; -- base+36
+    constant FANCTRL_OFFSET:       std_logic_vector(7 downto 0) := "00000000"; -- base+0x00
+    constant FAN0SPD_OFFSET:       std_logic_vector(7 downto 0) := "00000100"; -- base+0x04
+    constant FAN1SPD_OFFSET:       std_logic_vector(7 downto 0) := "00001000"; -- base+0x08
+    constant HVBIAS_OFFSET:        std_logic_vector(7 downto 0) := "00001100"; -- base+0x0C
+    constant MUXEN_OFFSET:         std_logic_vector(7 downto 0) := "00010000"; -- base+0x10
+    constant MUXA_OFFSET:          std_logic_vector(7 downto 0) := "00010100"; -- base+0x14
+    constant LED_OFFSET:           std_logic_vector(7 downto 0) := "00011000"; -- base+0x18
+    constant VER_OFFSET:           std_logic_vector(7 downto 0) := "00011100"; -- base+0x1C
+    constant CORE_EN_LO_OFFSET:    std_logic_vector(7 downto 0) := "00100000"; -- base+0x20
+    constant CORE_EN_HI_OFFSET:    std_logic_vector(7 downto 0) := "00100100"; -- base+0x24
+    constant FW_ID_MAGIC_OFFSET:   std_logic_vector(7 downto 0) := X"F0";
+    constant FW_ABI_VERSION_OFFSET: std_logic_vector(7 downto 0) := X"F4";
+    constant FW_VARIANT_ID_OFFSET: std_logic_vector(7 downto 0) := X"F8";
+    constant FW_BUILD_ID_OFFSET:   std_logic_vector(7 downto 0) := X"FC";
+
+    constant FW_ID_MAGIC_C:   std_logic_vector(31 downto 0) := X"44415048";
+    constant FW_ABI_VERSION_C: std_logic_vector(31 downto 0) := X"00020000";
+    constant FW_VARIANT_ID_C: std_logic_vector(31 downto 0) := X"00000002";
 
 begin
 
@@ -255,7 +268,7 @@ begin
         -- treat all of these register writes as if they are full 32 bits
         -- e.g. the four write strobe bits should be high
 
-        case ( axi_awaddr(5 downto 0) ) is
+        case ( axi_awaddr(7 downto 0) ) is
 
           when FANCTRL_OFFSET => 
             fan_speed_cfg_reg <= S_AXI_WDATA(7 downto 0);
@@ -383,12 +396,13 @@ read_mux_proc : process(
     mux_a_reg,
     stat_led_reg,
     version,
+    build_id,
     core_enable_reg
 ) is
 begin
     reg_data_out <= (others => '0');
 
-    case axi_araddr(5 downto 0) is
+    case axi_araddr(7 downto 0) is
         when FANCTRL_OFFSET =>
             reg_data_out(7 downto 0) <= fan_speed_cfg_reg;
         when FAN0SPD_OFFSET =>
@@ -409,6 +423,14 @@ begin
             reg_data_out <= core_enable_reg(31 downto 0);
         when CORE_EN_HI_OFFSET =>
             reg_data_out(7 downto 0) <= core_enable_reg(39 downto 32);
+        when FW_ID_MAGIC_OFFSET =>
+            reg_data_out <= FW_ID_MAGIC_C;
+        when FW_ABI_VERSION_OFFSET =>
+            reg_data_out <= FW_ABI_VERSION_C;
+        when FW_VARIANT_ID_OFFSET =>
+            reg_data_out <= FW_VARIANT_ID_C;
+        when FW_BUILD_ID_OFFSET =>
+            reg_data_out <= X"0" & build_id(27 downto 0);
         when others =>
             null;
     end case;

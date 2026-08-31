@@ -24,5 +24,17 @@ if [ -n "$PLATFORM_CORE" ]; then
   echo "INFO: Building via FuseSoC platform core $PLATFORM_CORE"
 fi
 
+if [ -z "${DAPHNE_GIT_SHA:-}" ]; then
+  DAPHNE_GIT_SHA=$(git -C "$ROOT_DIR" rev-parse --short=7 HEAD)
+fi
+: "${DAPHNE_OUTPUT_DIR:=$ROOT_DIR/xilinx/output-$DAPHNE_GIT_SHA}"
+
+export DAPHNE_GIT_SHA
+export DAPHNE_OUTPUT_DIR
+
 cd "$ROOT_DIR/xilinx"
-exec vivado -mode batch -source vivado_batch.tcl
+vivado -mode batch -source vivado_batch.tcl
+
+echo "INFO: Vivado exited successfully; packaging the Linux overlay in a clean process."
+sh "$ROOT_DIR/scripts/fusesoc/package_fullstream_overlay.sh" \
+  "$DAPHNE_OUTPUT_DIR" "$DAPHNE_GIT_SHA"

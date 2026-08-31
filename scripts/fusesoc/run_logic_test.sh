@@ -12,7 +12,8 @@ fi
 if [ "$#" -eq 0 ]; then
     set -- \
         dune-daq:daphne-fullstream:fan-monitor:0.1.0 \
-        dune-daq:daphne-fullstream:board-control:0.1.0
+        dune-daq:daphne-fullstream:board-control:0.1.0 \
+        dune-daq:daphne-fullstream:stream-input-mux:0.1.0
 fi
 
 for core in "$@"; do
@@ -25,4 +26,3 @@ for core in "$@"; do
         --build-root "$BUILD_ROOT_BASE/$core_build_root" \
         "$core"
 done
-

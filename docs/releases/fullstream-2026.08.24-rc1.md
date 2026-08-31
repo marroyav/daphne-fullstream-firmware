@@ -53,8 +53,14 @@ final checker line starts with `RESULT: PASS`.
 
 ## What has been checked
 
-- the fan monitor and all implemented board-control register write/readback
-  paths pass GHDL smoke tests
+- the fan monitor, all implemented board-control register write/readback paths,
+  and the full-stream input mux fail-closed reset, asynchronous-clock shadow
+  commit/acknowledgement, atomic activation, disable, and routing paths pass
+  GHDL smoke tests
+- board/logical selector and packet-header IDs remain stable while the internal
+  source lookup corrects the frontend PL order `[0,4,3,2,1]`
+- disabled acknowledgement resets/rearms each stream sender so a new activation
+  starts at a timestamp/header record boundary, never a retained data fragment
 - all seven checked-in formal jobs pass
 - the regenerated source manifest matches the checked-in manifest
 - the Vivado build preflight remains part of the `NOT RUN` Cooper gate

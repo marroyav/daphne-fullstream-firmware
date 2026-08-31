@@ -35,7 +35,9 @@ export DAPHNE_OUTPUT_DIR="$PWD/xilinx/output-$BUILD_SHA"
 ./scripts/fusesoc/check_build_outputs.sh "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
 ```
 
-The Linux build packages the overlay automatically. Run
+The Linux wrapper waits for Vivado to exit, then packages the overlay in a
+separate SDTGen process. This separation prevents the device-tree generator
+from sharing Vivado's live hardware-platform workspace. Run
 `package_fullstream_overlay.sh` separately only to recover from a packaging
 failure after Vivado has already produced the hardware files.
 
@@ -68,8 +70,10 @@ The `.bit` file programs the FPGA directly. The overlay ZIP contains the
 
 ## Run the formal checks
 
-Run the small GHDL tests first. They exercise the fan monitor and every
-implemented board-control register write/readback path:
+Run the small GHDL tests first. They exercise the fan monitor, every
+implemented board-control register write/readback path, and the full-stream
+input mux fail-closed reset, shadow write/readback, atomic cross-clock commit,
+activation acknowledgement, disable, and routing behavior:
 
 ```bash
 ./scripts/fusesoc/run_logic_test.sh

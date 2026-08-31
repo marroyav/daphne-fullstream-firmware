@@ -74,6 +74,10 @@ time and use several gigabytes of memory. A successful run ends with:
 INFO: Finished design building.
 ```
 
+The wrapper then waits for Vivado to close before starting SDTGen. Keep this
+ordering: launching SDTGen from the live Vivado process can fail while creating
+temporary processor-memory metadata even when the `.xsa` itself is valid.
+
 ## Check the result
 
 Run the checker with the same shell variables:
@@ -120,8 +124,9 @@ The `.bit` file is for FPGA programming. The overlay `.zip` contains the `.bin`,
 - Timing failed: do not deploy that bitstream. Open
   `post_route_timing_summary.rpt` and search for `VIOLATED`.
 - Device-tree generation failed after the bitstream was written: keep the `.bit`
-  and `.xsa`. With the Vivado/Vitis environment still loaded, package those
-  completed files without rebuilding the FPGA:
+  and `.xsa`. First make sure the Vivado process has exited. With the
+  Vivado/Vitis environment still loaded, package those completed files without
+  rebuilding the FPGA:
 
   ```bash
   ./scripts/fusesoc/package_fullstream_overlay.sh "$DAPHNE_OUTPUT_DIR" "$BUILD_SHA"
@@ -129,3 +134,6 @@ The `.bit` file is for FPGA programming. The overlay `.zip` contains the `.bin`,
   ```
 
   Vivado 2026.1 uses `sdtgen`; the retired XSCT command is not required.
+  A temporary `.mmi` creation error from the automatic packaging step is also
+  recoverable this way when the output checker confirms that the `.xsa`,
+  timing, DRC, and routing reports are otherwise sound.

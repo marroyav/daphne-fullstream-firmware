@@ -21,6 +21,7 @@ generic(
     N_SRC: positive  := 2;   -- each mux has 2 inputs
     N_MGT: positive  := 4;    -- four transceivers
     version: std_logic_vector(3 downto 0) := X"1" ;  -- low nibble of build commit
+    build_id: std_logic_vector(31 downto 0) := X"01234567"; -- zero-extended build commit
     link_id: std_logic_vector(5 downto 0) := "000000";
     slot_id: std_logic_vector(3 downto 0) := X"2";
     crate_id: std_logic_vector(9 downto 0) := "0000000011";
@@ -597,6 +598,7 @@ port(
     mux_a           : out std_logic_vector(1 downto 0);
     stat_led        : out std_logic_vector(5 downto 0);
     version         : in std_logic_vector(3 downto 0);
+    build_id        : in std_logic_vector(31 downto 0);
     core_chan_enable: out std_logic_vector(39 downto 0);
 	S_AXI_ACLK	    : in std_logic;
 	S_AXI_ARESETN	: in std_logic;
@@ -802,6 +804,7 @@ signal trigered_debug_reg: std_logic ;
 signal input_mux:array_8x4x14_type;
 signal input_mux_data: array_5x9x16_type;
 signal channel_id:array_8x4x8_type;
+signal stream_mux_enable: std_logic;
 signal stream_core_dout:array_8x64_type;
 signal stream_core_valid: std_logic_vector(7 downto 0);
 signal stream_core_last: std_logic_vector(7 downto 0);
@@ -1297,6 +1300,7 @@ port map(
     mux_a           => mux_a,
     stat_led        => stat_led,
     version         => version,
+    build_id        => build_id,
     core_chan_enable => core_chan_enable,
     S_AXI_ACLK	    => STUFF_S_AXI_ACLK,
 	S_AXI_ARESETN	=> STUFF_S_AXI_ARESETN,
@@ -1343,6 +1347,7 @@ input_mux_inst: entity work.stream_input_mux
     din  =>  din_full_array,
     dout =>  input_mux,
     muxctrl =>  channel_id,
+    stream_enable => stream_mux_enable,
     AXI_IN =>  AXI_IN,
     AXI_OUT => AXI_OUT 
     
@@ -1355,7 +1360,11 @@ core_inst: entity work.stream_core
 port map (
 
     clock 	=>  clock,-- 62.5MHz master clock
-    reset	=>   '0',
+    -- Hold every stream4 packer, FIFO, and FSM in reset while the input mux is
+    -- disabled. stream_mux_enable rises only with the atomic selector commit,
+    -- so synchronous reset release sees stable channel IDs and the first
+    -- visible word of each sender is a new timestamp/header sequence.
+    reset	=>   not stream_mux_enable,
     ts 	=>  timestamp,-- timestamp
     
     version => version,

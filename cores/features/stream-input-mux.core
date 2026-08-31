@@ -1,0 +1,36 @@
+CAPI=2:
+
+name: dune-daq:daphne-fullstream:stream-input-mux:0.1.0
+description: Full-stream input selector with AXI shadow-bank atomic activation CDC
+provider:
+  name: local
+
+filesets:
+  rtl:
+    files:
+      - ../../ip_repo/daphne3_ip/rtl/daphne3_package.vhd
+      - ../../ip_repo/daphne3_ip/rtl/stream/stream_mux_select.vhd
+      - ../../ip_repo/daphne3_ip/rtl/stream/stream_input_mux.vhd
+    file_type: vhdlSource-2008
+  tb:
+    files:
+      - ../../tests/logic/stream_input_mux_axi_smoke_tb.vhd
+    file_type: vhdlSource-2008
+
+targets:
+  default: &default_target
+    filesets:
+      - rtl
+  sim:
+    <<: *default_target
+    default_tool: ghdl
+    filesets_append:
+      - tb
+    toplevel: stream_input_mux_axi_smoke_tb
+    tools:
+      ghdl:
+        analyze_options:
+          - --std=08
+        run_options:
+          - --assert-level=error
+          - --stop-time=10us

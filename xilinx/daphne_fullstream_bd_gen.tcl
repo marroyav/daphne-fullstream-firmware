@@ -1227,6 +1227,8 @@ if {[catch {set DAPHNE3_0 [create_bd_cell -vlnv $daphneVlnv -type IP $block_cell
 }
 # Pass the low nibble of the build commit to the IP block.
 set_property CONFIG.version $bd_git_sha $DAPHNE3_0
+# The shared ABI identity block exposes the zero-extended seven-hex build ID.
+set_property CONFIG.build_id $bd_build_id $DAPHNE3_0
 
 # create instance: smartconnect_0, and set its properties
 set smartconnect_0 [create_bd_cell -vlnv xilinx.com:ip:smartconnect:1.0 -type IP smartconnect_0]
@@ -1362,7 +1364,7 @@ connect_bd_net -net zynq_ultra_ps_e_0_pl_resetn1 [get_bd_pins zynq_ultra_ps_e_0/
 assign_bd_address -offset 0x80000000 -range 0x04000000 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs DAPHNE3/AFE_SPI_S_AXI/reg0] -force
 assign_bd_address -offset 0x84000000 -range 0x04000000 -with_name SEG_DAPHNE3_reg0_1 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs DAPHNE3/END_P_S_AXI/reg0] -force
 assign_bd_address -offset 0x88000000 -range 0x04000000 -with_name SEG_DAPHNE3_reg0_2 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs DAPHNE3/FRONT_END_S_AXI/reg0] -force
-assign_bd_address -offset 0xA0010000 -range 0x00010000 -with_name SEG_DAPHNE3_reg0_3 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs DAPHNE3/MUX_S_AXI/reg0] -force
+assign_bd_address -offset 0xA0020000 -range 0x00010000 -with_name SEG_DAPHNE3_reg0_3 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs DAPHNE3/MUX_S_AXI/reg0] -force
 assign_bd_address -offset 0xA0000000 -range 0x00010000 -with_name SEG_DAPHNE3_reg0_4 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs DAPHNE3/OUTBUFF_S_AXI/reg0] -force
 assign_bd_address -offset 0x8C000000 -range 0x04000000 -with_name SEG_DAPHNE3_reg0_5 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs DAPHNE3/SPI_DAC_S_AXI/reg0] -force
 assign_bd_address -offset 0x90000000 -range 0x04000000 -with_name SEG_DAPHNE3_reg0_6 -target_address_space [get_bd_addr_spaces zynq_ultra_ps_e_0/Data] [get_bd_addr_segs DAPHNE3/SPY_BUF_S_S_AXI/reg0] -force

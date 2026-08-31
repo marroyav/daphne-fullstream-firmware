@@ -138,6 +138,7 @@ if command -v unzip >/dev/null 2>&1; then
       echo "FAIL  hardware XSA is corrupt" >&2
       failed=1
     fi
+
   fi
 else
   echo "FAIL  unzip is required to verify the XSA and overlay archive" >&2
@@ -152,9 +153,27 @@ if command -v dtc >/dev/null 2>&1; then
       echo "FAIL  device-tree blob does not parse" >&2
       failed=1
     fi
+
   fi
 else
   echo "FAIL  dtc is required to verify the device-tree blob" >&2
+  failed=1
+fi
+
+if command -v python3 >/dev/null 2>&1; then
+  if [ -s "$OUTPUT_DIR/$BUILD_NAME.xsa" ] && [ -s "$OVERLAY_DIR/$OVERLAY_NAME.dtbo" ]; then
+    if python3 "$ROOT_DIR/scripts/check_fullstream_artifact_map.py" \
+      --xsa "$OUTPUT_DIR/$BUILD_NAME.xsa" \
+      --dtbo "$OVERLAY_DIR/$OVERLAY_NAME.dtbo"
+    then
+      echo "PASS  generated full-stream address map"
+    else
+      echo "FAIL  generated full-stream address map does not match the release ABI" >&2
+      failed=1
+    fi
+  fi
+else
+  echo "FAIL  python3 is required to verify the generated full-stream address map" >&2
   failed=1
 fi
 
@@ -196,16 +215,32 @@ if [ -s "$release_cells_report" ]; then
     echo "FAIL  routed design does not contain exactly four GTHE4 channels" >&2
     failed=1
   fi
+  if grep -Fxq 'MUX_ASYNC_REG_COUNT=6' "$release_cells_report"; then
+    echo "PASS  six mux CDC/reset synchronizer cells are preserved"
+  else
+    echo "FAIL  routed design does not preserve exactly six mux synchronizer cells" >&2
+    failed=1
+  fi
 fi
 
 cdc_report="$OUTPUT_DIR/post_route_cdc.rpt"
-if [ -s "$cdc_report" ] && grep -Eq '^[[:space:]]*CDC-[0-9]+[[:space:]]+Critical' "$cdc_report"; then
-  echo "LIMITATION  Vivado reports critical CDC classifications; review $cdc_report"
+if [ -s "$cdc_report" ]; then
+  if grep -Eq 'CDC-[0-9]+.*Critical' "$cdc_report"; then
+    echo "FAIL  Vivado reports unwaived critical CDC classifications in $cdc_report" >&2
+    failed=1
+  else
+    echo "PASS  no unwaived critical CDC classifications"
+  fi
 fi
 
 methodology_report="$OUTPUT_DIR/post_route_methodology.rpt"
-if [ -s "$methodology_report" ] && grep -Fq 'Critical Warning' "$methodology_report"; then
-  echo "LIMITATION  Vivado reports critical methodology warnings; review $methodology_report"
+if [ -s "$methodology_report" ]; then
+  if grep -Fq 'Critical Warning' "$methodology_report"; then
+    echo "FAIL  Vivado reports unwaived critical methodology warnings in $methodology_report" >&2
+    failed=1
+  else
+    echo "PASS  no unwaived critical methodology warnings"
+  fi
 fi
 
 if [ "$failed" -ne 0 ]; then

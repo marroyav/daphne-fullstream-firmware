@@ -25,6 +25,7 @@ filesets:
   hooks:
     files:
       - ../../scripts/fusesoc/vivado_batch_hook.sh
+      - ../../scripts/fusesoc/package_fullstream_overlay.sh
     file_type: user
 
 scripts:

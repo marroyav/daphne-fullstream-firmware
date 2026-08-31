@@ -176,6 +176,10 @@ bits and unknown addresses read as zero.
 |  0x1C   | 0x9400001C |     version      |  4b   |  R/O   |     -      | Low nibble of the build commit                   | Bits 31:4 read as zero                |
 |  0x20   | 0x94000020 | core_enable_reg  |  32b  |  R/W   | 0x00000000 | Legacy channel-enable low word                   | Readable, but not consumed by the active full-stream datapath |
 |  0x24   | 0x94000024 | core_enable_reg  |  8b   |  R/W   |    0x00    | Legacy channel-enable high byte                  | Readable, but not consumed by the active full-stream datapath |
+|  0xF0   | 0x940000F0 | fw_identity_magic | 32b  |  R/O   | 0x44415048 | Shared gateware identity magic (`DAPH`)          | Must match before interpreting the remaining identity words |
+|  0xF4   | 0x940000F4 | fw_abi_version   |  32b  |  R/O   | 0x00020000 | Dual-profile platform ABI version 2.0            | ABI major is bits 31:16; minor is bits 15:0 |
+|  0xF8   | 0x940000F8 | fw_variant_id    |  32b  |  R/O   | 0x00000002 | Full-stream gateware variant                     | `1` = self-trigger; `2` = full-stream |
+|  0xFC   | 0x940000FC | fw_build_id      |  32b  |  R/O   |     -      | Build commit identifier                          | Bits 31:28 are zero; bits 27:0 hold the seven-hex artifact SHA prefix |
 
 ## Hermes/10G sender control, AXI4-Lite slave interface: `TRIRG_S_AXI`
 **Base Address:** `0x9800_0000`
@@ -218,65 +222,105 @@ bits and unknown addresses read as zero.
 |  0x04   | 0xA0000004 |  fifo_dout  |  32b  |  R/O   | 0x00000000 | FIFO output register | Data cycles between LOW 32 bits, then HIGH 32 bits, starting from LOW 32 bits. 1k 64-bit words are stored, read address 2048 times to read it all |
 
 ## Stream input mux, AXI4-Lite slave interface: `MUX_S_AXI`
-**Base Address:** `0xA001_0000`
+**Base Address:** `0xA002_0000`
 **Memory Bank Size:** `64K`
 
-Select the desired output of the register by writing to the least significant byte (bits [7:0]) of its corresponding address. This module determines what data is sent to the core. It does not control what the input spy buffers see!
+The `0xA001_0000` through `0xA001_FFFF` window is reserved for self-trigger threshold registers and is intentionally unmapped in full-stream gateware.
+
+The 32 selector words at offsets `0x00` through `0x7C` are AXI-domain shadow
+registers. Select the desired source by writing its encoding to bits [7:0] of
+the corresponding word. Shadow writes and readback do not immediately change
+the streaming datapath. This module determines what data is sent to the core;
+it does not control what the input spy buffers see.
 
 Some examples:
-1. Connect output(0)(3) to input(27) --> write 0x1B to address base+12
-2. Connect output(4)(2) to input(4) --> write 0x04 to address base+72
-3. Generate random pattern on output(7)(1) --> write 0x2D to address base+116
-4. Generate counter on output(5)(3) --> write 0x2C to address base+92
-5. Turn off output(3)(2) --> write 0xFF to address base+56 
+1. Connect output(0)(3) to AFE 3 channel 3 --> write `0x33` to address base+0x0C
+2. Connect output(4)(2) to AFE 4 channel 2 --> write `0x42` to address base+0x48
+3. Generate random pattern on output(7)(1) --> write `0x55` to address base+0x74
+4. Generate counter on output(5)(3) --> write `0x54` to address base+0x5C
+5. Turn off output(3)(2) --> write `0xFF` to address base+0x38
 
 Official test modes available for the MUX outputs:
-1. Fixed Pattern --> All 1s = "11111111111111": Set the value of the desired register as `0x28`
-2. Fixed Pattern --> Lower 8 bits set = "00000011111111": Set the value of the desired register as `0x29`
-3. Fixed Pattern --> Upper 6 bits set = "11111100000000": Set the value of the desired register as `0x2A`
-4. Fixed Pattern --> Two MSb and two LSb set = "11000000000011": Set the value of the desired register as `0x2B`
-5. Incrementing Counter: Set the value of the desired register as `0x2C`
-6. Pseudorandom Generator: Set the value of the desired register as `0x2D`
+1. Fixed Pattern --> All 1s = "11111111111111": Set the value of the desired register as `0x50`
+2. Fixed Pattern --> Lower 8 bits set = "00000011111111": Set the value of the desired register as `0x51`
+3. Fixed Pattern --> Upper 6 bits set = "11111100000000": Set the value of the desired register as `0x52`
+4. Fixed Pattern --> Two MSb and two LSb set = "11000000000011": Set the value of the desired register as `0x53`
+5. Incrementing Counter: Set the value of the desired register as `0x54`
+6. Pseudorandom Generator: Set the value of the desired register as `0x55`
 
-By default, the MUX associates each channel to their respective consecutive output of the module, as follows:
-1. din(0) --> dout(0)(0) 
-2. din(1) --> dout(0)(1)
-3. din(2) --> dout(0)(2)
-4. din(3) --> dout(0)(3)
-5. din(4) --> dout(1)(0)
-And so on...
+The selector value encodes the AFE number in the upper nibble and channel number
+in the lower nibble. On reset, all 32 shadows are `0xFF`, the activation request
+and acknowledgement are zero, and the stream-domain active selectors export
+`0xFF`. That encoding is not a valid AFE/channel or diagnostic code, so every
+output is zero.
+
+After programming all 32 shadow words, write control bit 0 at offset `0x80` to
+`1`. This is the requested-enable level. Its synchronized rising edge captures
+the complete, stable shadow bank atomically in the 62.5 MHz stream clock domain.
+Poll control bit 1 until it is `1` before starting data flow. Shadow registers
+must remain unchanged between the enable request and acknowledgement. Writes to
+the shadows while already active only change readback and are not committed.
+
+To stop or reconfigure, write control bit 0 to `0` and poll bit 1 until it is
+`0`. Disabled state again exports `0xFF` and zero data on every output. Update
+the shadows only after disabled acknowledgement, then write `1` and wait for
+active acknowledgement. A new commit therefore requires a `1 -> 0 -> 1`
+request sequence. Only full-word writes (`WSTRB=0b1111`) are accepted for the
+selector and control registers. AFEs 0 through 4 and each AFE's channel-8 frame
+pattern remain selectable after activation; unused shadows should remain
+`0xFF`.
+
+Selector and packet-header IDs always use board/logical AFE numbering. The
+frontend array arrives in PL order `[board AFE 0, 4, 3, 2, 1]`; lookup applies
+that permutation internally without changing the selector/header byte:
+
+| Board/logical AFE | Selector upper nibble | PL `din` index |
+|-------------------|-----------------------|----------------|
+| 0 | `0x0` | 0 |
+| 1 | `0x1` | 4 |
+| 2 | `0x2` | 3 |
+| 3 | `0x3` | 2 |
+| 4 | `0x4` | 1 |
+
+For example, board channel 8 is board AFE 1/channel 0: software writes `0x10`,
+the packet header remains `0x10`, and the payload source is PL `din(4)(0)`.
+The acknowledged stream enable also holds all stream sender packers, FIFOs, and
+state machines in reset while disabled. After an atomic commit, reset releases
+only with stable channel IDs; the first visible record begins with its timestamp
+and channel headers rather than a data fragment retained from a prior run.
 
 | Offset |  Address   |     Register      | Size | Access |  Default   |     Description      |               Additional Information                |
 |--------|------------|-------------------|------|--------|------------|----------------------|-----------------------------------------------------|
-|  0x00  | 0xA0010000 | muxctrl_reg(0)(0) | 32b  |  R/W   | 0x00000000 | Mux Control register | Select associated input for the data output (0)(0) |
-|  0x04  | 0xA0010004 | muxctrl_reg(0)(1) | 32b  |  R/W   | 0x00000001 | Mux Control register | Select associated input for the data output (0)(1) |
-|  0x08  | 0xA0010008 | muxctrl_reg(0)(2) | 32b  |  R/W   | 0x00000002 | Mux Control register | Select associated input for the data output (0)(2) |
-|  0x0C  | 0xA001000C | muxctrl_reg(0)(3) | 32b  |  R/W   | 0x00000003 | Mux Control register | Select associated input for the data output (0)(3) |
-|  0x10  | 0xA0010010 | muxctrl_reg(1)(0) | 32b  |  R/W   | 0x00000004 | Mux Control register | Select associated input for the data output (1)(0) |
-|  0x14  | 0xA0010014 | muxctrl_reg(1)(1) | 32b  |  R/W   | 0x00000005 | Mux Control register | Select associated input for the data output (1)(1) |
-|  0x18  | 0xA0010018 | muxctrl_reg(1)(2) | 32b  |  R/W   | 0x00000006 | Mux Control register | Select associated input for the data output (1)(2) |
-|  0x1C  | 0xA001001C | muxctrl_reg(1)(3) | 32b  |  R/W   | 0x00000007 | Mux Control register | Select associated input for the data output (1)(3) |
-|  0x20  | 0xA0010020 | muxctrl_reg(2)(0) | 32b  |  R/W   | 0x00000008 | Mux Control register | Select associated input for the data output (2)(0) |
-|  0x24  | 0xA0010024 | muxctrl_reg(2)(1) | 32b  |  R/W   | 0x00000009 | Mux Control register | Select associated input for the data output (2)(1) |
-|  0x28  | 0xA0010028 | muxctrl_reg(2)(2) | 32b  |  R/W   | 0x0000000A | Mux Control register | Select associated input for the data output (2)(2) |
-|  0x2C  | 0xA001002C | muxctrl_reg(2)(3) | 32b  |  R/W   | 0x0000000B | Mux Control register | Select associated input for the data output (2)(3) |
-|  0x30  | 0xA0010030 | muxctrl_reg(3)(0) | 32b  |  R/W   | 0x0000000C | Mux Control register | Select associated input for the data output (3)(0) |
-|  0x34  | 0xA0010034 | muxctrl_reg(3)(1) | 32b  |  R/W   | 0x0000000D | Mux Control register | Select associated input for the data output (3)(1) |
-|  0x38  | 0xA0010038 | muxctrl_reg(3)(2) | 32b  |  R/W   | 0x0000000E | Mux Control register | Select associated input for the data output (3)(2) |
-|  0x3C  | 0xA001003C | muxctrl_reg(3)(3) | 32b  |  R/W   | 0x0000000F | Mux Control register | Select associated input for the data output (3)(3) |
-|  0x40  | 0xA0010040 | muxctrl_reg(4)(0) | 32b  |  R/W   | 0x00000010 | Mux Control register | Select associated input for the data output (4)(0) |
-|  0x44  | 0xA0010044 | muxctrl_reg(4)(1) | 32b  |  R/W   | 0x00000011 | Mux Control register | Select associated input for the data output (4)(1) |
-|  0x48  | 0xA0010048 | muxctrl_reg(4)(2) | 32b  |  R/W   | 0x00000012 | Mux Control register | Select associated input for the data output (4)(2) |
-|  0x4C  | 0xA001004C | muxctrl_reg(4)(3) | 32b  |  R/W   | 0x00000013 | Mux Control register | Select associated input for the data output (4)(3) |
-|  0x50  | 0xA0010050 | muxctrl_reg(5)(0) | 32b  |  R/W   | 0x00000014 | Mux Control register | Select associated input for the data output (5)(0) |
-|  0x54  | 0xA0010054 | muxctrl_reg(5)(1) | 32b  |  R/W   | 0x00000015 | Mux Control register | Select associated input for the data output (5)(1) |
-|  0x58  | 0xA0010058 | muxctrl_reg(5)(2) | 32b  |  R/W   | 0x00000016 | Mux Control register | Select associated input for the data output (5)(2) |
-|  0x5C  | 0xA001005C | muxctrl_reg(5)(3) | 32b  |  R/W   | 0x00000017 | Mux Control register | Select associated input for the data output (5)(3) |
-|  0x60  | 0xA0010060 | muxctrl_reg(6)(0) | 32b  |  R/W   | 0x00000018 | Mux Control register | Select associated input for the data output (6)(0) |
-|  0x64  | 0xA0010064 | muxctrl_reg(6)(1) | 32b  |  R/W   | 0x00000019 | Mux Control register | Select associated input for the data output (6)(1) |
-|  0x68  | 0xA0010068 | muxctrl_reg(6)(2) | 32b  |  R/W   | 0x0000001A | Mux Control register | Select associated input for the data output (6)(2) |
-|  0x6C  | 0xA001006C | muxctrl_reg(6)(3) | 32b  |  R/W   | 0x0000001B | Mux Control register | Select associated input for the data output (6)(3) |
-|  0x70  | 0xA0010070 | muxctrl_reg(7)(0) | 32b  |  R/W   | 0x0000001C | Mux Control register | Select associated input for the data output (7)(0) |
-|  0x74  | 0xA0010074 | muxctrl_reg(7)(1) | 32b  |  R/W   | 0x0000001D | Mux Control register | Select associated input for the data output (7)(1) |
-|  0x78  | 0xA0010078 | muxctrl_reg(7)(2) | 32b  |  R/W   | 0x0000001E | Mux Control register | Select associated input for the data output (7)(2) |
-|  0x7C  | 0xA001007C | muxctrl_reg(7)(3) | 32b  |  R/W   | 0x0000001F | Mux Control register | Select associated input for the data output (7)(3) |
+|  0x00  | 0xA0020000 | muxctrl_reg(0)(0) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (0)(0) |
+|  0x04  | 0xA0020004 | muxctrl_reg(0)(1) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (0)(1) |
+|  0x08  | 0xA0020008 | muxctrl_reg(0)(2) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (0)(2) |
+|  0x0C  | 0xA002000C | muxctrl_reg(0)(3) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (0)(3) |
+|  0x10  | 0xA0020010 | muxctrl_reg(1)(0) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (1)(0) |
+|  0x14  | 0xA0020014 | muxctrl_reg(1)(1) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (1)(1) |
+|  0x18  | 0xA0020018 | muxctrl_reg(1)(2) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (1)(2) |
+|  0x1C  | 0xA002001C | muxctrl_reg(1)(3) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (1)(3) |
+|  0x20  | 0xA0020020 | muxctrl_reg(2)(0) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (2)(0) |
+|  0x24  | 0xA0020024 | muxctrl_reg(2)(1) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (2)(1) |
+|  0x28  | 0xA0020028 | muxctrl_reg(2)(2) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (2)(2) |
+|  0x2C  | 0xA002002C | muxctrl_reg(2)(3) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (2)(3) |
+|  0x30  | 0xA0020030 | muxctrl_reg(3)(0) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (3)(0) |
+|  0x34  | 0xA0020034 | muxctrl_reg(3)(1) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (3)(1) |
+|  0x38  | 0xA0020038 | muxctrl_reg(3)(2) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (3)(2) |
+|  0x3C  | 0xA002003C | muxctrl_reg(3)(3) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (3)(3) |
+|  0x40  | 0xA0020040 | muxctrl_reg(4)(0) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (4)(0) |
+|  0x44  | 0xA0020044 | muxctrl_reg(4)(1) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (4)(1) |
+|  0x48  | 0xA0020048 | muxctrl_reg(4)(2) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (4)(2) |
+|  0x4C  | 0xA002004C | muxctrl_reg(4)(3) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (4)(3) |
+|  0x50  | 0xA0020050 | muxctrl_reg(5)(0) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (5)(0) |
+|  0x54  | 0xA0020054 | muxctrl_reg(5)(1) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (5)(1) |
+|  0x58  | 0xA0020058 | muxctrl_reg(5)(2) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (5)(2) |
+|  0x5C  | 0xA002005C | muxctrl_reg(5)(3) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (5)(3) |
+|  0x60  | 0xA0020060 | muxctrl_reg(6)(0) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (6)(0) |
+|  0x64  | 0xA0020064 | muxctrl_reg(6)(1) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (6)(1) |
+|  0x68  | 0xA0020068 | muxctrl_reg(6)(2) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (6)(2) |
+|  0x6C  | 0xA002006C | muxctrl_reg(6)(3) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (6)(3) |
+|  0x70  | 0xA0020070 | muxctrl_reg(7)(0) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (7)(0) |
+|  0x74  | 0xA0020074 | muxctrl_reg(7)(1) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (7)(1) |
+|  0x78  | 0xA0020078 | muxctrl_reg(7)(2) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (7)(2) |
+|  0x7C  | 0xA002007C | muxctrl_reg(7)(3) | 32b  |  R/W   | 0x000000FF | Mux Control register | Select associated input for the data output (7)(3) |
+|  0x80  | 0xA0020080 | mux_activation     | 32b  |  R/W   | 0x00000000 | Activation control/status | Bit 0: requested enable; bit 1: synchronized active acknowledgement (R/O) |

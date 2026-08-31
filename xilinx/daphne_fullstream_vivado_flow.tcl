@@ -39,7 +39,11 @@ proc daphne_fullstream_resolve_config {script_dir} {
     set cfg(skip_post_synth_checkpoint) [daphne_fullstream_get_env DAPHNE_SKIP_POST_SYNTH_CHECKPOINT 0]
 
     set cfg(git_sha) [daphne_fullstream_resolve_git_sha]
-    set cfg(v_git_sha) "28'h$cfg(git_sha)"
+    # Firmware identity stores the first seven hexadecimal digits of the
+    # artifact commit, matching the established 28-bit build stamp.
+    set version_git_sha [string range $cfg(git_sha) 0 6]
+    set cfg(v_git_sha) "28'h$version_git_sha"
+    set cfg(bd_build_id) "32'h0$version_git_sha"
     set cfg(min_git_sha) [string range $cfg(git_sha) 0 0]
     set cfg(bd_git_sha) "4'h$cfg(min_git_sha)"
     set cfg(bd_name) daphne_fullstream_bd
@@ -92,6 +96,7 @@ proc daphne_fullstream_create_block_design {cfg_name} {
     # The imported block-design generator still consumes this legacy variable
     # from the caller's Tcl scope when it stamps the firmware version nibble.
     set bd_git_sha $cfg(bd_git_sha)
+    set bd_build_id $cfg(bd_build_id)
     source -notrace [file join $cfg(script_dir) "daphne_fullstream_bd_gen.tcl"]
     read_bd [file join ".." "bd" $cfg(bd_name) "$cfg(bd_name).bd"]
     make_wrapper -top -files [get_files [file join ".." "bd" $cfg(bd_name) "$cfg(bd_name).bd"]]
@@ -127,6 +132,12 @@ proc daphne_fullstream_write_release_cell_audit {cfg_name} {
     puts $audit "FRONTEND_ASYNC_REG_COUNT=[llength $sync_cells]"
     foreach cell $sync_cells {
         puts $audit "FRONTEND_ASYNC_REG=$cell LOC=[get_property LOC $cell]"
+    }
+
+    set mux_sync_cells [get_cells -hier -filter {NAME =~ *input_mux_inst* && ASYNC_REG == TRUE}]
+    puts $audit "MUX_ASYNC_REG_COUNT=[llength $mux_sync_cells]"
+    foreach cell $mux_sync_cells {
+        puts $audit "MUX_ASYNC_REG=$cell LOC=[get_property LOC $cell]"
     }
 
     set gt_cells [get_cells -hier -filter {REF_NAME == GTHE4_CHANNEL}]
@@ -174,52 +185,6 @@ proc daphne_fullstream_write_bitstream_and_xsa {cfg_name} {
     write_hw_platform -fixed -force -include_bit -file [file join $cfg(output_dir) "${cfg(build_name)}.xsa"]
 }
 
-proc daphne_fullstream_package_overlay_linux {cfg_name} {
-    upvar 1 $cfg_name cfg
-
-    set package_script [file normalize [file join $cfg(script_dir) .. scripts fusesoc package_fullstream_overlay.sh]]
-    puts "INFO: Packaging the Linux device-tree overlay with SDTGen."
-    if {[catch {exec sh $package_script $cfg(output_dir) $cfg(git_sha) 2>@1} result]} {
-        error "ERROR: overlay packaging failed:\n$result"
-    }
-    puts $result
-}
-
-proc daphne_fullstream_export_dt_windows {cfg_name} {
-    upvar 1 $cfg_name cfg
-
-    if {![info exists ::env(XILINX_VITIS)]} {
-        error "ERROR: XILINX_VITIS is not set. Please source settings64.bat/.sh first."
-    }
-
-    set vitis_path $::env(XILINX_VITIS)
-    puts "INFO: Found Vitis at $vitis_path."
-    set xsct_exe [file join $vitis_path bin xsct]
-
-    puts "INFO: Generating Device Tree files."
-    if {[catch {exec $xsct_exe -eval "hsi::open_hw_design [file join $cfg(output_dir) ${cfg(build_name)}.xsa]; createdts -hw [file join $cfg(output_dir) ${cfg(build_name)}.xsa] -zocl -platform-name $cfg(build_name) -git-branch xlnx_rel_v2022.2 -overlay -out [file join $cfg(output_dir) $cfg(build_name)]; exit" 2>@1} result]} {
-        error "ERROR: xsct command failed:\n$result"
-    }
-    puts "INFO: Device Tree files have been generated."
-    puts "INFO: Please make sure to edit .dtsi file with the proper lines for AXI Quad SPI Module, and run the dtc command to compile the design."
-}
-
-proc daphne_fullstream_run_post_build {cfg_name} {
-    upvar 1 $cfg_name cfg
-
-    if {$::tcl_platform(os) eq "Linux"} {
-        puts "INFO: Running current TCL script on $::tcl_platform(os)."
-        daphne_fullstream_package_overlay_linux cfg
-    } elseif {$::tcl_platform(os) eq "Windows NT"} {
-        puts "INFO: Running current TCL script on $::tcl_platform(os)."
-        puts "WARNING: Device Tree Overlay can not be automatically produced on Windows."
-        puts "WARNING: Please make sure to use the .xsa File to manually generate the necessary outputs."
-        daphne_fullstream_export_dt_windows cfg
-    } else {
-        puts "WARNING: Unknown OS $::tcl_platform(os)."
-    }
-}
-
 proc daphne_fullstream_run_full_build {script_dir} {
     array set cfg [daphne_fullstream_resolve_config $script_dir]
     daphne_fullstream_check_vivado_version cfg
@@ -228,7 +193,7 @@ proc daphne_fullstream_run_full_build {script_dir} {
     daphne_fullstream_run_synth cfg
     daphne_fullstream_run_impl cfg
     daphne_fullstream_write_bitstream_and_xsa cfg
-    daphne_fullstream_run_post_build cfg
     puts "INFO: Finished design building."
+    puts "INFO: Overlay packaging is deferred until after Vivado exits."
     exit
 }

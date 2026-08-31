@@ -47,6 +47,7 @@
 -- base+0x74    select register for dout(7)(1)
 -- base+0x78    select register for dout(7)(2)
 -- base+0x7C    select register for dout(7)(3)
+-- base+0x80    activation control/status: bit 0 requested, bit 1 active
 --
 -- The select register (muxctrl_reg) is 8 bits: the upper nibble specifies
 -- the AFE chip number (0 to 4) and the lower nibble specifies
@@ -54,13 +55,16 @@
 -- fixed "frame" pattern. there are a few special diagnostic modes
 -- in this module, write 0x5* to activate these modes
 -- (scroll down for details on what these modes are).
+-- The selector words are AXI-clock-domain shadow registers. They reset to
+-- 0xFF and do not affect the streaming datapath until software writes 1 to
+-- activation-control bit 0. Writing 0 requests a fail-closed disabled state.
 --
 -- some examples:
---   connect output(0)(3) to AFE3,ch3 --> write 0x33 to address base+12
---   connect output(4)(2) to AFE6,ch7 --> write 0x67 to address base+72
---   generate random pattern on output(7)(1) --> write 0x2D to address base+116
---   generate counter on output(5)(3) --> write 0x2C to address base+92
---   turn off output(3)(2) --> write 0xFF to address base+56
+--   connect output(0)(3) to AFE3,ch3 --> write 0x33 to address base+0x0C
+--   connect output(4)(2) to AFE4,ch2 --> write 0x42 to address base+0x48
+--   generate random pattern on output(7)(1) --> write 0x55 to address base+0x74
+--   generate counter on output(5)(3) --> write 0x54 to address base+0x5C
+--   turn off output(3)(2) --> write 0xFF to address base+0x38
 --
 -- remember: in the streaming mode sender this module determines what data is sent
 -- to the core. it does NOT control what the input spy buffers see!
@@ -77,6 +81,7 @@ port(
     din: in array_5x9x16_type; -- from the front end
     dout: out array_8x4x14_type;
     muxctrl: out array_8x4x8_type;
+    stream_enable: out std_logic; -- stream-domain committed/active state
     AXI_IN: in AXILITE_INREC;
     AXI_OUT: out AXILITE_OUTREC
   );
@@ -101,7 +106,29 @@ signal reg_wren: std_logic;
 signal reg_data_out:std_logic_vector(31 downto 0);
 signal aw_en: std_logic;
 
-signal muxctrl_reg: array_8x4x8_type; -- afe number in upper nibble, afe channel number in lower nibble
+-- AXI-domain configuration bank and enable request. The stream-domain bank is
+-- captured as one bundled-data word only after the synchronized request rises.
+signal muxctrl_reg: array_8x4x8_type; -- shadow: AFE number/channel nibble encoding
+signal mux_enable_request_axi: std_logic;
+
+signal mux_enable_request_meta: std_logic;
+signal mux_enable_request_sync: std_logic;
+signal mux_enable_request_sync_d: std_logic;
+signal stream_resetn_meta: std_logic;
+signal stream_resetn_sync: std_logic;
+signal muxctrl_active_reg: array_8x4x8_type;
+signal mux_active_stream: std_logic;
+
+signal mux_active_ack_meta: std_logic;
+signal mux_active_ack_sync: std_logic;
+
+attribute ASYNC_REG: string;
+attribute ASYNC_REG of mux_enable_request_meta: signal is "TRUE";
+attribute ASYNC_REG of mux_enable_request_sync: signal is "TRUE";
+attribute ASYNC_REG of stream_resetn_meta: signal is "TRUE";
+attribute ASYNC_REG of stream_resetn_sync: signal is "TRUE";
+attribute ASYNC_REG of mux_active_ack_meta: signal is "TRUE";
+attribute ASYNC_REG of mux_active_ack_sync: signal is "TRUE";
 
 signal counter_reg: std_logic_vector(13 downto 0) := "00000000000000";
 signal rand_reg:    std_logic_vector(13 downto 0) := "00100111010101";
@@ -120,13 +147,13 @@ begin
 end process counter_proc;
 
 -- big old programmable mux: 5x9 inputs ---> 8x4 outputs
--- this is controlled by afe_reg and afe_ch_reg, a block of regs
--- these registers are R/W from AXI LITE interface
+-- This is controlled by the active stream-domain selector bank. Software
+-- reads and writes the separate AXI-domain shadow bank.
 --
 -- some examples:
--- if mux_ctrl(2)(3)=X"07" then dout(2)(3) is connected to din(0)(7)
--- if mux_ctrl(4)(1)=X"3B" then dout(4)(1) is forced to all zeros
--- if mux_ctrl(5)(1)=X"2D" then dout(5)(1) is a pseudorandom pattern
+-- if muxctrl(2)(3)=X"07" then dout(2)(3) is connected to din(0)(7)
+-- if muxctrl(4)(1)=X"3B" then dout(4)(1) is forced to all zeros
+-- if muxctrl(5)(1)=X"55" then dout(5)(1) is a pseudorandom pattern
 
 -- do the 16->14 bit truncation here
 
@@ -136,7 +163,7 @@ gen_send: for s in 7 downto 0 generate
         stream_mux_select_inst: entity work.stream_mux_select
         port map(
             din => din,
-            muxctrl => muxctrl_reg(s)(c),
+            muxctrl => muxctrl_active_reg(s)(c),
             counter => counter_reg,
             rand => rand_reg,
             dout => dout(s)(c)
@@ -144,6 +171,67 @@ gen_send: for s in 7 downto 0 generate
 
     end generate gen_chan;
 end generate gen_send;
+
+-- Assert fail-closed reset asynchronously and release it synchronously in the
+-- stream domain. This prevents AXI reset deassertion from becoming another
+-- asynchronous control input to the active selector bank.
+stream_reset_sync_proc: process(clock, AXI_IN.ARESETN)
+begin
+  if AXI_IN.ARESETN = '0' then
+    stream_resetn_meta <= '0';
+    stream_resetn_sync <= '0';
+  elsif rising_edge(clock) then
+    stream_resetn_meta <= '1';
+    stream_resetn_sync <= stream_resetn_meta;
+  end if;
+end process stream_reset_sync_proc;
+
+-- Synchronize the level request into the 62.5 MHz stream domain. The 256-bit
+-- selector bank intentionally uses a bundled-data CDC: software writes every
+-- shadow word before asserting the request, and must leave the bank unchanged
+-- until active acknowledgement returns. The two request synchronizer stages
+-- provide settling time before the complete bank is captured on one stream
+-- clock edge. To recommit, software must disable and wait for acknowledgement
+-- before modifying the bank and asserting the request again.
+stream_activation_proc: process(clock, stream_resetn_sync)
+begin
+  if stream_resetn_sync = '0' then
+    mux_enable_request_meta <= '0';
+    mux_enable_request_sync <= '0';
+    mux_enable_request_sync_d <= '0';
+    muxctrl_active_reg <= (others => (others => X"FF"));
+    mux_active_stream <= '0';
+  elsif rising_edge(clock) then
+    mux_enable_request_meta <= mux_enable_request_axi;
+    mux_enable_request_sync <= mux_enable_request_meta;
+    mux_enable_request_sync_d <= mux_enable_request_sync;
+
+    if mux_enable_request_sync = '0' then
+      muxctrl_active_reg <= (others => (others => X"FF"));
+      mux_active_stream <= '0';
+    elsif mux_enable_request_sync_d = '0' then
+      -- Atomic stream-domain capture; the shadow bank is stable by protocol.
+      muxctrl_active_reg <= muxctrl_reg;
+      mux_active_stream <= '1';
+    end if;
+  end if;
+end process stream_activation_proc;
+
+-- Return stream-domain active/disabled state through a conventional two-flop
+-- synchronizer. Bit 1 at base+0x80 is authoritative before software starts or
+-- stops data flow; bit 0 is only the AXI-domain request.
+activation_ack_proc: process(AXI_IN.ACLK)
+begin
+  if rising_edge(AXI_IN.ACLK) then
+    if AXI_IN.ARESETN = '0' then
+      mux_active_ack_meta <= '0';
+      mux_active_ack_sync <= '0';
+    else
+      mux_active_ack_meta <= mux_active_stream;
+      mux_active_ack_sync <= mux_active_ack_meta;
+    end if;
+  end if;
+end process activation_ack_proc;
 
 -- AXI-LITE slave interface logic
 
@@ -244,46 +332,48 @@ begin
   if rising_edge(AXI_IN.ACLK) then 
     if (AXI_IN.ARESETN = '0') then 
 
-        -- here are the default muxctrl values
-        muxctrl_reg(0)(0) <= X"00";  -- AFE 0, ch 0
-        muxctrl_reg(0)(1) <= X"01";  -- AFE 0, ch 1
-        muxctrl_reg(0)(2) <= X"02";
-        muxctrl_reg(0)(3) <= X"03";
+        -- Fail-safe default: no frontend or diagnostic source is selected.
+        muxctrl_reg(0)(0) <= X"FF";
+        muxctrl_reg(0)(1) <= X"FF";
+        muxctrl_reg(0)(2) <= X"FF";
+        muxctrl_reg(0)(3) <= X"FF";
 
-        muxctrl_reg(1)(0) <= X"04";
-        muxctrl_reg(1)(1) <= X"05";
-        muxctrl_reg(1)(2) <= X"06";
-        muxctrl_reg(1)(3) <= X"07";
+        muxctrl_reg(1)(0) <= X"FF";
+        muxctrl_reg(1)(1) <= X"FF";
+        muxctrl_reg(1)(2) <= X"FF";
+        muxctrl_reg(1)(3) <= X"FF";
 
-        muxctrl_reg(2)(0) <= X"10";
-        muxctrl_reg(2)(1) <= X"11";
-        muxctrl_reg(2)(2) <= X"12";
-        muxctrl_reg(2)(3) <= X"13";
+        muxctrl_reg(2)(0) <= X"FF";
+        muxctrl_reg(2)(1) <= X"FF";
+        muxctrl_reg(2)(2) <= X"FF";
+        muxctrl_reg(2)(3) <= X"FF";
 
-        muxctrl_reg(3)(0) <= X"14";
-        muxctrl_reg(3)(1) <= X"15";
-        muxctrl_reg(3)(2) <= X"16";
-        muxctrl_reg(3)(3) <= X"17";
+        muxctrl_reg(3)(0) <= X"FF";
+        muxctrl_reg(3)(1) <= X"FF";
+        muxctrl_reg(3)(2) <= X"FF";
+        muxctrl_reg(3)(3) <= X"FF";
 
-        muxctrl_reg(4)(0) <= X"20";
-        muxctrl_reg(4)(1) <= X"21";
-        muxctrl_reg(4)(2) <= X"22";
-        muxctrl_reg(4)(3) <= X"23";
+        muxctrl_reg(4)(0) <= X"FF";
+        muxctrl_reg(4)(1) <= X"FF";
+        muxctrl_reg(4)(2) <= X"FF";
+        muxctrl_reg(4)(3) <= X"FF";
 
-        muxctrl_reg(5)(0) <= X"24";
-        muxctrl_reg(5)(1) <= X"25";
-        muxctrl_reg(5)(2) <= X"26";
-        muxctrl_reg(5)(3) <= X"27";
+        muxctrl_reg(5)(0) <= X"FF";
+        muxctrl_reg(5)(1) <= X"FF";
+        muxctrl_reg(5)(2) <= X"FF";
+        muxctrl_reg(5)(3) <= X"FF";
 
-        muxctrl_reg(6)(0) <= X"30";
-        muxctrl_reg(6)(1) <= X"31";
-        muxctrl_reg(6)(2) <= X"32";
-        muxctrl_reg(6)(3) <= X"33";
+        muxctrl_reg(6)(0) <= X"FF";
+        muxctrl_reg(6)(1) <= X"FF";
+        muxctrl_reg(6)(2) <= X"FF";
+        muxctrl_reg(6)(3) <= X"FF";
 
-        muxctrl_reg(7)(0) <= X"34";
-        muxctrl_reg(7)(1) <= X"35";
-        muxctrl_reg(7)(2) <= X"36";
-        muxctrl_reg(7)(3) <= X"37"; -- afe 3, ch 7
+        muxctrl_reg(7)(0) <= X"FF";
+        muxctrl_reg(7)(1) <= X"FF";
+        muxctrl_reg(7)(2) <= X"FF";
+        muxctrl_reg(7)(3) <= X"FF";
+
+        mux_enable_request_axi <= '0';
 
     else
       if (reg_wren = '1' and AXI_IN.WSTRB = "1111") then
@@ -332,6 +422,8 @@ begin
           when X"74" => muxctrl_reg(7)(1) <= AXI_IN.WDATA(7 downto 0);
           when X"78" => muxctrl_reg(7)(2) <= AXI_IN.WDATA(7 downto 0);
           when X"7C" => muxctrl_reg(7)(3) <= AXI_IN.WDATA(7 downto 0);
+
+          when X"80" => mux_enable_request_axi <= AXI_IN.WDATA(0);
 
           when others =>
             null;
@@ -467,6 +559,9 @@ reg_data_out <= (X"000000" & muxctrl_reg(0)(0)) when (axi_araddr(7 downto 0)=X"0
                 (X"000000" & muxctrl_reg(7)(2)) when (axi_araddr(7 downto 0)=X"78") else
                 (X"000000" & muxctrl_reg(7)(3)) when (axi_araddr(7 downto 0)=X"7C") else
 
+                (X"0000000" & "00" & mux_active_ack_sync & mux_enable_request_axi)
+                                                   when (axi_araddr(7 downto 0)=X"80") else
+
                 X"00000000";
 
 -- Output register or memory read data
@@ -487,9 +582,11 @@ begin
   end if;
 end process;
 
--- the streaming mode senders need to know what inputs they are connected to
--- so export this block of registers
+-- Export only the atomically captured stream-domain bank. Disabled/reset state
+-- stores FF in every active selector, which also makes stream_mux_select drive
+-- every payload output to zero.
 
-muxctrl <= muxctrl_reg;
+muxctrl <= muxctrl_active_reg;
+stream_enable <= mux_active_stream;
 
 end stream_input_mux_arch;

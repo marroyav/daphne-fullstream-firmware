@@ -75,8 +75,11 @@ append_env_tcl DAPHNE_PLACE_DIRECTIVE
 append_env_tcl DAPHNE_POST_PLACE_PHYSOPT_DIRECTIVE
 append_env_tcl DAPHNE_ROUTE_DIRECTIVE
 append_env_tcl DAPHNE_POST_ROUTE_PHYSOPT_DIRECTIVE
-append_env_tcl XILINX_VITIS
 printf 'set script_dir [file dirname [file normalize [info script]]]\n' >>"$shim_tcl"
 printf 'source -notrace [file join $script_dir "vivado_impl_entry.tcl"]\n' >>"$shim_tcl"
 
-exec vivado -mode batch -source "$shim_tcl"
+vivado -mode batch -source "$shim_tcl"
+
+echo "INFO: Vivado exited successfully; packaging the Linux overlay in a clean process."
+sh "$WORK_ROOT/scripts/fusesoc/package_fullstream_overlay.sh" \
+  "$DAPHNE_OUTPUT_DIR" "$DAPHNE_GIT_SHA"

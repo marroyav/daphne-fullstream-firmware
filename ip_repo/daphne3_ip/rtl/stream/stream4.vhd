@@ -15,7 +15,9 @@
 -- the output bandwidth and data will start to back up in the FIFO.
 -- Minimum BLOCKS_PER_RECORD is about 30.
 --
--- To disable this sender, set all four channel_id bytes to 0xFF.
+-- Setting all four channel_id bytes to 0xFF suppresses this sender. The
+-- full-stream top additionally asserts reset for every sender while the input
+-- mux activation handshake is disabled, flushing partial records.
 
 -- Jamieson Olsen <jamieson@fnal.gov>
 
@@ -314,10 +316,19 @@ begin
 
     last_i <= '1' when (state=data and wordcount=((BLOCKS_PER_RECORD*7)-1) ) else '0';  -- 7 data words per block
 
-    regout_proc: process(clock)
+    -- Suppress the external stream immediately while reset is asserted. The
+    -- top-level now holds reset high for the whole disabled mux state, which
+    -- also resets the packer, FIFO, and FSM. On synchronous release the FSM
+    -- starts at rst -> purge -> hold -> header, so VALID cannot expose a stale
+    -- DATA word from the previous activation.
+    regout_proc: process(clock, reset)
     begin
-        if rising_edge(clock) then
-            if (sender_enable='1') then -- normal running
+        if reset = '1' then
+            valid_reg <= '0';
+            dout_reg  <= (others=>'0');
+            last_reg  <= '0';
+        elsif rising_edge(clock) then
+            if reset_clean = '0' and sender_enable = '1' then -- normal running
                 valid_reg <= valid_i;
                 dout_reg  <= dout_i;
                 last_reg  <= last_i;

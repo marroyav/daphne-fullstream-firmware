@@ -32,6 +32,13 @@ jobs:
         run: |
           sh -n scripts/fusesoc/check_build_outputs.sh
           sh -n scripts/fusesoc/package_fullstream_overlay.sh
+          sh -n scripts/fusesoc/run_vivado_batch.sh
+          sh -n scripts/fusesoc/vivado_batch_hook.sh
+          sh -n tests/scripts/check_build_outputs_fail_closed_test.sh
+          sh -n tests/scripts/post_vivado_packaging_test.sh
+          ./tests/scripts/check_build_outputs_fail_closed_test.sh
+          ./tests/scripts/post_vivado_packaging_test.sh
+          python3 -m py_compile scripts/check_fullstream_artifact_map.py
           python3 scripts/check_documentation.py
           python3 scripts/check_register_map.py
 

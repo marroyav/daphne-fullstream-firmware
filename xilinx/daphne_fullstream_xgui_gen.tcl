@@ -22,6 +22,7 @@ proc init_gui { IPINST } {
   ipgui::add_param $IPINST -name "N_SRC" -parent ${Page_0}
   ipgui::add_param $IPINST -name "N_MGT" -parent ${Page_0}
   ipgui::add_param $IPINST -name "version" -parent ${Page_0}
+  ipgui::add_param $IPINST -name "build_id" -parent ${Page_0}
   ipgui::add_param $IPINST -name "link_id" -parent ${Page_0}
   ipgui::add_param $IPINST -name "slot_id" -parent ${Page_0}
   ipgui::add_param $IPINST -name "crate_id" -parent ${Page_0}
@@ -56,6 +57,14 @@ proc update_PARAM_VALUE.version { PARAM_VALUE.version } {
 
 proc validate_PARAM_VALUE.version { PARAM_VALUE.version } {
 	# Procedure called to validate version
+	return true
+}
+
+proc update_PARAM_VALUE.build_id { PARAM_VALUE.build_id } {
+	# Procedure called to update build_id when any dependent parameter changes
+}
+
+proc validate_PARAM_VALUE.build_id { PARAM_VALUE.build_id } {
 	return true
 }
 
@@ -127,6 +136,10 @@ proc update_MODELPARAM_VALUE.N_MGT { MODELPARAM_VALUE.N_MGT PARAM_VALUE.N_MGT } 
 proc update_MODELPARAM_VALUE.version { MODELPARAM_VALUE.version PARAM_VALUE.version } {
 	# Procedure called to set VHDL generic/Verilog parameter value(s) based on TCL parameter value
 	set_property value [get_property value ${PARAM_VALUE.version}] ${MODELPARAM_VALUE.version}
+}
+
+proc update_MODELPARAM_VALUE.build_id { MODELPARAM_VALUE.build_id PARAM_VALUE.build_id } {
+	set_property value [get_property value ${PARAM_VALUE.build_id}] ${MODELPARAM_VALUE.build_id}
 }
 
 proc update_MODELPARAM_VALUE.link_id { MODELPARAM_VALUE.link_id PARAM_VALUE.link_id } {
