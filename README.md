@@ -53,6 +53,7 @@ daphne_fullstream_<sha>.bit
 daphne_fullstream_<sha>.bin
 daphne_fullstream_<sha>.xsa
 daphne_fullstream_ol_<sha>.zip
+daphne_fullstream_ol_<sha>.SHA256SUMS
 SHA256SUMS
 post_route_timing_summary.rpt
 post_route_bus_skew.rpt
@@ -66,7 +67,10 @@ release_cells.rpt
 ```
 
 The `.bit` file programs the FPGA directly. The overlay ZIP contains the
-`.bin`, `.dtbo`, and `shell.json` files used by Linux.
+`.bin`, `.dtbo`, and `shell.json` files used by Linux. The overlay-scoped
+manifest lets a dual-gateware packager validate this app without depending on
+the compatibility `SHA256SUMS`, which may be replaced when another app is
+packaged into the same output directory.
 
 ## Run the formal checks
 

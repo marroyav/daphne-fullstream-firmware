@@ -50,6 +50,17 @@ do
   write_fixture "$OUTPUT_DIR/$relative_path"
 done
 
+: >"$OUTPUT_DIR/$OVERLAY_NAME.SHA256SUMS"
+for relative_path in \
+  "$OVERLAY_NAME.zip" \
+  "$OVERLAY_NAME/$OVERLAY_NAME.bin" \
+  "$OVERLAY_NAME/$OVERLAY_NAME.dtbo" \
+  "$OVERLAY_NAME/shell.json"
+do
+  printf '0000000000000000000000000000000000000000000000000000000000000000  %s\n' \
+    "$relative_path" >>"$OUTPUT_DIR/$OVERLAY_NAME.SHA256SUMS"
+done
+
 : >"$OUTPUT_DIR/SHA256SUMS"
 for relative_path in \
   "$BUILD_NAME.bit" \
@@ -60,6 +71,7 @@ for relative_path in \
   "$OVERLAY_NAME/$OVERLAY_NAME.bin" \
   "$OVERLAY_NAME/$OVERLAY_NAME.dtbo" \
   "$OVERLAY_NAME/shell.json" \
+  "$OVERLAY_NAME.SHA256SUMS" \
   post_route_timing_summary.rpt \
   post_route_bus_skew.rpt \
   post_route_cdc.rpt \
@@ -105,6 +117,51 @@ if ! run_checker "$TEST_ROOT/clean.log"; then
 fi
 grep -Fq 'RESULT: PASS.' "$TEST_ROOT/clean.log"
 
+overlay_manifest="$OUTPUT_DIR/$OVERLAY_NAME.SHA256SUMS"
+root_manifest="$OUTPUT_DIR/SHA256SUMS"
+cp "$overlay_manifest" "$TEST_ROOT/overlay-manifest.clean"
+cp "$root_manifest" "$TEST_ROOT/root-manifest.clean"
+
+sed "s#  $OVERLAY_NAME/shell.json\$#  $OVERLAY_NAME/shell.json.backup#" \
+  "$TEST_ROOT/overlay-manifest.clean" >"$overlay_manifest"
+if run_checker "$TEST_ROOT/overlay-suffix.log"; then
+  echo "ERROR: an overlay-manifest suffix evasion passed the release gate." >&2
+  exit 1
+fi
+grep -Fq "overlay checksum manifest must contain exactly one entry for $OVERLAY_NAME/shell.json (found 0)" \
+  "$TEST_ROOT/overlay-suffix.log"
+cp "$TEST_ROOT/overlay-manifest.clean" "$overlay_manifest"
+
+awk -v required="$OVERLAY_NAME/shell.json" '$2 == required { print }' \
+  "$TEST_ROOT/overlay-manifest.clean" >>"$overlay_manifest"
+if run_checker "$TEST_ROOT/overlay-duplicate.log"; then
+  echo "ERROR: a duplicate overlay-manifest entry passed the release gate." >&2
+  exit 1
+fi
+grep -Fq "overlay checksum manifest must contain exactly one entry for $OVERLAY_NAME/shell.json (found 2)" \
+  "$TEST_ROOT/overlay-duplicate.log"
+cp "$TEST_ROOT/overlay-manifest.clean" "$overlay_manifest"
+
+sed 's#  release_cells.rpt$#  release_cells.rpt.backup#' \
+  "$TEST_ROOT/root-manifest.clean" >"$root_manifest"
+if run_checker "$TEST_ROOT/root-suffix.log"; then
+  echo "ERROR: a root-manifest suffix evasion passed the release gate." >&2
+  exit 1
+fi
+grep -Fq 'checksum manifest must contain exactly one entry for release_cells.rpt (found 0)' \
+  "$TEST_ROOT/root-suffix.log"
+cp "$TEST_ROOT/root-manifest.clean" "$root_manifest"
+
+awk '$2 == "release_cells.rpt" { print }' \
+  "$TEST_ROOT/root-manifest.clean" >>"$root_manifest"
+if run_checker "$TEST_ROOT/root-duplicate.log"; then
+  echo "ERROR: a duplicate root-manifest entry passed the release gate." >&2
+  exit 1
+fi
+grep -Fq 'checksum manifest must contain exactly one entry for release_cells.rpt (found 2)' \
+  "$TEST_ROOT/root-duplicate.log"
+cp "$TEST_ROOT/root-manifest.clean" "$root_manifest"
+
 printf 'CDC-1 Critical unsafe clock-domain crossing\n' \
   >"$OUTPUT_DIR/post_route_cdc.rpt"
 if run_checker "$TEST_ROOT/cdc-critical.log"; then
@@ -127,4 +184,4 @@ grep -Fq 'FAIL  Vivado reports unwaived critical methodology warnings' \
   "$TEST_ROOT/methodology-critical.log"
 grep -Fq 'RESULT: FAILED.' "$TEST_ROOT/methodology-critical.log"
 
-echo "RESULT: PASS - critical CDC and methodology findings fail closed"
+echo "RESULT: PASS - manifest coverage and critical implementation findings fail closed"

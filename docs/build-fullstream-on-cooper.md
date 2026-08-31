@@ -88,6 +88,9 @@ Run the checker with the same shell variables:
 ```
 
 The Linux build packages the overlay and creates `SHA256SUMS` automatically.
+It also creates `daphne_fullstream_ol_<sha>.SHA256SUMS`, whose scope is only
+the immutable full-stream app bundle. Keep that app-scoped manifest when the
+bundle is combined with self-trigger firmware.
 The checker verifies those checksums and the implementation gates.
 
 The final line must start with `RESULT: PASS`. The important files are:
@@ -96,6 +99,7 @@ The final line must start with `RESULT: PASS`. The important files are:
 xilinx/output-<sha>/daphne_fullstream_<sha>.bit
 xilinx/output-<sha>/daphne_fullstream_<sha>.xsa
 xilinx/output-<sha>/daphne_fullstream_ol_<sha>.zip
+xilinx/output-<sha>/daphne_fullstream_ol_<sha>.SHA256SUMS
 xilinx/output-<sha>/SHA256SUMS
 xilinx/output-<sha>/post_route_timing_summary.rpt
 xilinx/output-<sha>/post_route_bus_skew.rpt

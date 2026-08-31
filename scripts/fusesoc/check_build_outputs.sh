@@ -38,6 +38,26 @@ check_file() {
   fi
 }
 
+require_single_manifest_entry() {
+  manifest_label="$1"
+  manifest_path="$2"
+  required_path="$3"
+  entry_count=$(awk -v required="$required_path" '
+    NF == 2 {
+      filename = $2
+      sub(/^\*/, "", filename)
+      if (filename == required) {
+        count++
+      }
+    }
+    END { print count + 0 }
+  ' "$manifest_path")
+  if [ "$entry_count" -ne 1 ]; then
+    echo "FAIL  $manifest_label must contain exactly one entry for $required_path (found $entry_count)" >&2
+    failed=1
+  fi
+}
+
 echo "Checking fullstream build $GIT_SHA"
 echo "Output directory: $OUTPUT_DIR"
 
@@ -49,6 +69,7 @@ check_file "overlay bitstream" "$OVERLAY_DIR/$OVERLAY_NAME.bin"
 check_file "device-tree blob" "$OVERLAY_DIR/$OVERLAY_NAME.dtbo"
 check_file "overlay metadata" "$OVERLAY_DIR/shell.json"
 check_file "overlay archive" "$OUTPUT_DIR/$OVERLAY_NAME.zip"
+check_file "overlay manifest" "$OUTPUT_DIR/$OVERLAY_NAME.SHA256SUMS"
 check_file "checksums" "$OUTPUT_DIR/SHA256SUMS"
 check_file "route timing" "$OUTPUT_DIR/post_route_timing_summary.rpt"
 check_file "bus skew" "$OUTPUT_DIR/post_route_bus_skew.rpt"
@@ -61,6 +82,38 @@ check_file "DRC report" "$OUTPUT_DIR/post_imp_drc.rpt"
 check_file "release cells" "$OUTPUT_DIR/release_cells.rpt"
 
 checksum_manifest="$OUTPUT_DIR/SHA256SUMS"
+overlay_checksum_manifest="$OUTPUT_DIR/$OVERLAY_NAME.SHA256SUMS"
+if [ -s "$overlay_checksum_manifest" ]; then
+  if command -v sha256sum >/dev/null 2>&1; then
+    if (CDPATH= cd -- "$OUTPUT_DIR" && sha256sum -c "$OVERLAY_NAME.SHA256SUMS"); then
+      echo "PASS  overlay checksums"
+    else
+      echo "FAIL  an overlay-file checksum does not match" >&2
+      failed=1
+    fi
+  elif command -v shasum >/dev/null 2>&1; then
+    if (CDPATH= cd -- "$OUTPUT_DIR" && shasum -a 256 -c "$OVERLAY_NAME.SHA256SUMS"); then
+      echo "PASS  overlay checksums"
+    else
+      echo "FAIL  an overlay-file checksum does not match" >&2
+      failed=1
+    fi
+  else
+    echo "FAIL  sha256sum or shasum is required to verify $OVERLAY_NAME.SHA256SUMS" >&2
+    failed=1
+  fi
+
+  for checksum_path in \
+    "$OVERLAY_NAME.zip" \
+    "$OVERLAY_NAME/$OVERLAY_NAME.bin" \
+    "$OVERLAY_NAME/$OVERLAY_NAME.dtbo" \
+    "$OVERLAY_NAME/shell.json"
+  do
+    require_single_manifest_entry \
+      "overlay checksum manifest" "$overlay_checksum_manifest" "$checksum_path"
+  done
+fi
+
 if [ -s "$checksum_manifest" ]; then
   if command -v sha256sum >/dev/null 2>&1; then
     if (CDPATH= cd -- "$OUTPUT_DIR" && sha256sum -c SHA256SUMS); then
@@ -90,6 +143,7 @@ if [ -s "$checksum_manifest" ]; then
     "$OVERLAY_NAME/$OVERLAY_NAME.bin" \
     "$OVERLAY_NAME/$OVERLAY_NAME.dtbo" \
     "$OVERLAY_NAME/shell.json" \
+    "$OVERLAY_NAME.SHA256SUMS" \
     post_route_timing_summary.rpt \
     post_route_bus_skew.rpt \
     post_route_cdc.rpt \
@@ -100,10 +154,8 @@ if [ -s "$checksum_manifest" ]; then
     post_imp_drc.rpt \
     release_cells.rpt
   do
-    if ! grep -Fq "  $checksum_path" "$checksum_manifest"; then
-      echo "FAIL  checksum manifest does not cover $checksum_path" >&2
-      failed=1
-    fi
+    require_single_manifest_entry \
+      "checksum manifest" "$checksum_manifest" "$checksum_path"
   done
 fi
 

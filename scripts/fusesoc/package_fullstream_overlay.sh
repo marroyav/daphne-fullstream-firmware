@@ -191,6 +191,19 @@ PACKAGE_STAGE=""
 
 (
   CDPATH= cd -- "$OUTPUT_DIR"
+  overlay_manifest="$OVERLAY_NAME.SHA256SUMS"
+  set -- \
+    "$OVERLAY_NAME.zip" \
+    "$OVERLAY_NAME/$OVERLAY_NAME.bin" \
+    "$OVERLAY_NAME/$OVERLAY_NAME.dtbo" \
+    "$OVERLAY_NAME/shell.json"
+
+  if [ "$SHA256_TOOL" = sha256sum ]; then
+    sha256sum "$@" > "$overlay_manifest"
+  else
+    shasum -a 256 "$@" > "$overlay_manifest"
+  fi
+
   set --
   for checksum_path in \
     "$BUILD_NAME.bit" \
@@ -201,6 +214,7 @@ PACKAGE_STAGE=""
     "$OVERLAY_NAME/$OVERLAY_NAME.bin" \
     "$OVERLAY_NAME/$OVERLAY_NAME.dtbo" \
     "$OVERLAY_NAME/shell.json" \
+    "$overlay_manifest" \
     post_route_timing_summary.rpt \
     post_route_bus_skew.rpt \
     post_route_cdc.rpt \
@@ -224,4 +238,5 @@ PACKAGE_STAGE=""
 )
 
 echo "INFO: Device-tree overlay package is ready: $OVERLAY_ZIP"
+echo "INFO: Overlay checksums are ready: $OUTPUT_DIR/$OVERLAY_NAME.SHA256SUMS"
 echo "INFO: Checksums are ready: $OUTPUT_DIR/SHA256SUMS"
